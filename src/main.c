@@ -5,21 +5,40 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <assert.h>
 
 #include <event2/buffer.h>
 #include <event2/event.h>
 #include <event2/http.h>
 
+static int has_file(const char *path, const char* const *served) {
+	for (; *served; served++) {
+		if (!strcmp(path, *served))
+			return 1;
+	}
+
+	return 0;
+}
+
 void handle_file(struct evhttp_request *req, void *data) {
 	const char **argv = data;
 	const char *vpath = evhttp_request_get_uri(req);
 
-	evbuffer *buf = evbuffer_new();
+	/* Chop the leading slash. */
+	assert(vpath[0] == '/');
+	vpath++;
 
-	evbuffer_add_printf(buf, "testzor\n");
-	evhttp_send_reply(req, 200, "OK", buf);
+	if (!has_file(vpath, argv))
+		evhttp_send_error(req, 404, "Not Found");
+	else {
+		struct evbuffer *buf = evbuffer_new();
 
-	evbuffer_free(buf);
+		evbuffer_add_printf(buf, "testzor\n");
+		evhttp_send_reply(req, 200, "OK", buf);
+
+		evbuffer_free(buf);
+	}
 }
 
 int main(int argc, char *argv[]) {
