@@ -3,6 +3,8 @@
  * 2-clause BSD-licensed
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +19,8 @@
 #include <event2/buffer.h>
 #include <event2/event.h>
 #include <event2/http.h>
+
+#include "content-type.h"
 
 static int has_file(const char *path, const char* const *served) {
 	for (; *served; served++) {
@@ -64,7 +68,7 @@ void handle_file(struct evhttp_request *req, void *data) {
 					evhttp_send_error(req, 501, "Not Implemented");
 				} else {
 					if (evhttp_add_header(headers, "Content-Type",
-								"application/octet-stream"))
+								guess_content_type(fd)))
 						printf("evhttp_add_header(Content-Type) failed\n");
 
 					evbuffer_add_file(buf, fd, 0, st.st_size);
