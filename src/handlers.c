@@ -30,6 +30,18 @@ static int has_file(const char *path, const char* const *served) {
 	return 0;
 }
 
+static void print_req(struct evhttp_request *req) {
+	const char *uri = evhttp_request_get_uri(req);
+	struct evhttp_connection *conn = evhttp_request_get_connection(req);
+
+	char *addr;
+	ev_uint16_t port;
+
+	assert(conn);
+	evhttp_connection_get_peer(conn, &addr, &port);
+	printf("[%s:%d] %s\n", addr, port, uri);
+}
+
 void handle_file(struct evhttp_request *req, void *data) {
 	const char **argv = data;
 	const char *vpath = evhttp_request_get_uri(req);
@@ -37,6 +49,8 @@ void handle_file(struct evhttp_request *req, void *data) {
 	/* Chop the leading slash. */
 	assert(vpath[0] == '/');
 	vpath++;
+
+	print_req(req);
 
 	if (!has_file(vpath, argv))
 		evhttp_send_error(req, 404, "Not Found");
@@ -88,6 +102,8 @@ void handle_index(struct evhttp_request *req, void *data) {
 	const char **argv = data;
 	struct evbuffer *buf = evbuffer_new();
 	struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
+
+	print_req(req);
 
 	assert(headers);
 	if (evhttp_add_header(headers, "Content-Type",
