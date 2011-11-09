@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (argc - optind == 0) {
-		printf("No files given to share.\n");
+		printf(opt_help, argv[0]);
 		return 1;
 	}
 
