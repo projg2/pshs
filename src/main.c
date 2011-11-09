@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <signal.h>
 
 #include <getopt.h>
 
@@ -16,6 +17,12 @@
 
 #include "handlers.h"
 #include "network.h"
+
+static void term_handler(evutil_socket_t fd, short what, void *data) {
+	struct event_base *evb = data;
+
+	event_base_loopbreak(evb);
+}
 
 const struct option opts[] = {
 	{ "help", no_argument, NULL, 'h' },
@@ -47,6 +54,11 @@ int main(int argc, char *argv[]) {
 
 	struct event_base *evb;
 	struct evhttp *http;
+
+	struct event *sigevents[5];
+	const int sigs[5] = { SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2 };
+	int i;
+
 	const char *extip;
 
 	while ((opt = getopt_long(argc, argv, "hVp:U", opts, NULL)) != -1) {
@@ -74,6 +86,8 @@ int main(int argc, char *argv[]) {
 		printf(opt_help, argv[0]);
 		return 1;
 	}
+
+	event_enable_debug_mode();
 
 	evb = event_base_new();
 	if (!evb) {
@@ -109,10 +123,23 @@ int main(int argc, char *argv[]) {
 	if (extip)
 		printf("Files available at: http://%s:%d/\n", extip, port);
 
+	for (i = 0; i < 5; i++) {
+		sigevents[i] = evsignal_new(evb, sigs[i], term_handler, evb);
+		if (!sigevents[i])
+			printf("evsignal_new(%d) failed.\n", sigs[i]);
+		else
+			event_add(sigevents[i], NULL);
+	}
+
 	event_base_dispatch(evb);
 
 	destroy_external_ip(port);
 	destroy_content_type();
+
+	for (i = 0; i < 5; i++) {
+		if (sigevents[i])
+			event_free(sigevents[i]);
+	}
 	evhttp_free(http);
 	event_base_free(evb);
 
