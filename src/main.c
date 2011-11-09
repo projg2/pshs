@@ -85,6 +85,16 @@ void handle_file(struct evhttp_request *req, void *data) {
 	}
 }
 
+void handle_index(struct evhttp_request *req, void *data) {
+	const char **argv = data;
+	struct evbuffer *buf = evbuffer_new();
+
+	generate_index(buf, argv);
+
+	evhttp_send_reply(req, 200, "OK", buf);
+	evbuffer_free(buf);
+}
+
 int main(int argc, char *argv[]) {
 	struct event_base *evb;
 	struct evhttp *http;
@@ -101,6 +111,7 @@ int main(int argc, char *argv[]) {
 	}
 	evhttp_set_allowed_methods(http, EVHTTP_REQ_GET | EVHTTP_REQ_HEAD);
 	evhttp_set_gencb(http, handle_file, &argv[1]);
+	evhttp_set_cb(http, "/", handle_index, &argv[1]);
 	if (evhttp_bind_socket(http, "0.0.0.0", 8080)) {
 		printf("evhttp_bind_socket() failed.\n");
 		return 1;
