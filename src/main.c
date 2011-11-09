@@ -15,12 +15,14 @@
 #include <event2/http.h>
 
 #include "handlers.h"
+#include "network.h"
 
 const struct option opts[] = {
 	{ "help", no_argument, NULL, 'h' },
 	{ "version", no_argument, NULL, 'V' },
 
 	{ "port", required_argument, NULL, 'p' },
+	{ "no-upnp", required_argument, NULL, 'U' },
 
 	{ 0, 0, 0, 0 }
 };
@@ -32,17 +34,22 @@ const char opt_help[] =
 "    --help, -h           print this help message\n"
 "    --version, -V        print program version and exit\n"
 "\n"
+#ifdef HAVE_LIBMINIUPNPC
+"    --no-upnp, -U        disable port redirection using UPnP\n"
+#endif
 "    --port N, -p N       set port to listen on (default: random)\n";
 
 int main(int argc, char *argv[]) {
 	int opt;
 	unsigned int port = 0;
+	int upnp = 1;
 	char *tmp;
 
 	struct event_base *evb;
 	struct evhttp *http;
+	const char *extip;
 
-	while ((opt = getopt_long(argc, argv, "hVp:", opts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hVp:U", opts, NULL)) != -1) {
 		switch (opt) {
 			case 'p':
 				port = strtol(optarg, &tmp, 0);
@@ -50,6 +57,9 @@ int main(int argc, char *argv[]) {
 					printf("Invalid port number: %s\n", optarg);
 					return 1;
 				}
+				break;
+			case 'U':
+				upnp = 0;
 				break;
 			case 'V':
 				printf("%s\n", PACKAGE_STRING);
@@ -92,11 +102,16 @@ int main(int argc, char *argv[]) {
 	}
 
 	init_content_type();
+	extip = init_external_ip(port, upnp);
 
 	printf("Ready to share %d files.\n", argc - optind);
 	printf("Bound to 0.0.0.0:%d.\n", port);
+	if (extip)
+		printf("Files available at: http://%s:%d/\n", extip, port);
 
 	event_base_dispatch(evb);
+
+	destroy_external_ip(port);
 	destroy_content_type();
 	evhttp_free(http);
 	event_base_free(evb);

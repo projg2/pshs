@@ -18,6 +18,13 @@ AS_IF([test x"$enable_libmagic" != x"no"], [
 	AC_CHECK_LIB([magic], [magic_descriptor])
 ])
 
+AC_ARG_ENABLE([upnp],
+	[AS_HELP_STRING([--disable-upnp],
+		[Disable use of UPnP (via libminiupnpc)])])
+AS_IF([test x"$enable_libupnp" != x"no"], [
+	AC_CHECK_LIB([miniupnpc], [UPNP_AddPortMapping])
+])
+
 AC_ARG_ENABLE([debug],
 	[AS_HELP_STRING([--disable-debug],
 		[Disable debugging asserts])])
