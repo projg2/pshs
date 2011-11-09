@@ -44,6 +44,7 @@ const char *init_external_ip(unsigned int port, int use_upnp) {
 
 	int ret = UPNP_GetValidIGD(devlist, &upnp_urls, &upnp_data,
 			lan_addr, sizeof(lan_addr));
+	freeUPNPDevlist(devlist);
 
 	upnp_enabled = (ret == 1);
 	if (upnp_enabled) {
@@ -68,11 +69,21 @@ const char *init_external_ip(unsigned int port, int use_upnp) {
 			printf("UPNP_AddPortMapping() failed: %s\n", strupnperror(ret));
 			upnp_enabled = 0;
 			FreeUPNPUrls(&(upnp_urls));
+		} else {
+			static char extip[16];
+
+			if (UPNP_GetExternalIPAddress(
+					upnp_urls.controlURL,
+#ifdef LIBMINIUPNPC_SO_5
+					upnp_data.first.servicetype,
+#else
+					upnp_data.servicetype,
+#endif
+					extip) == UPNPCOMMAND_SUCCESS)
+				return extip;
 		}
 	} else if (ret)
 		FreeUPNPUrls(&(upnp_urls));
-
-	freeUPNPDevlist(devlist);
 #endif
 	return NULL;
 }
