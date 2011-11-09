@@ -88,6 +88,12 @@ void handle_file(struct evhttp_request *req, void *data) {
 void handle_index(struct evhttp_request *req, void *data) {
 	const char **argv = data;
 	struct evbuffer *buf = evbuffer_new();
+	struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
+
+	assert(headers);
+	if (evhttp_add_header(headers, "Content-Type",
+				"text/html; charset=utf-8"))
+		printf("evhttp_add_header(Content-Type) failed\n");
 
 	generate_index(buf, argv);
 
