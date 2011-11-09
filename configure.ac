@@ -11,6 +11,13 @@ AC_USE_SYSTEM_EXTENSIONS
 
 PKG_CHECK_MODULES([LIBEVENT], [libevent])
 
+AC_ARG_ENABLE([libmagic],
+	[AS_HELP_STRING([--disable-libmagic],
+		[Disable use of libmagic])])
+AS_IF([test x"$enable_libmagic" != x"no"], [
+	AC_CHECK_LIB([magic], [magic_descriptor])
+])
+
 AC_ARG_ENABLE([debug],
 	[AS_HELP_STRING([--disable-debug],
 		[Disable debugging asserts])])

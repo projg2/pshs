@@ -106,7 +106,10 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	init_content_type();
+
 	event_base_dispatch(evb);
+	destroy_content_type();
 	evhttp_free(http);
 	event_base_free(evb);
 
