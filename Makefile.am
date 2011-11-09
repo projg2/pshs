@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS = -I m4
 bin_PROGRAMS = pshs
 
 pshs_SOURCES = src/main.c src/content-type.c src/content-type.h \
-	src/index.c src/index.h
+	src/index.c src/index.h src/handlers.c src/handlers.h
 
 AM_CPPFLAGS = $(LIBEVENT_CFLAGS)
 LDADD = $(LIBEVENT_LIBS)
