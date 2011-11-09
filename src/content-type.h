@@ -7,6 +7,11 @@
 #ifndef _PSHS_CONTENT_TYPE_H
 #define _PSHS_CONTENT_TYPE_H
 
-const char *guess_content_type(int fd);
+#include <event2/util.h>
+
+void init_content_type(void);
+void destroy_content_type(void);
+
+int open_ct(const char *path, const char **ct, ev_off_t *size);
 
 #endif /*_PSHS_CONTENT_TYPE_H*/
