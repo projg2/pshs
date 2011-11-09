@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <getopt.h>
 
@@ -18,6 +19,8 @@
 const struct option opts[] = {
 	{ "help", no_argument, NULL, 'h' },
 	{ "version", no_argument, NULL, 'V' },
+
+	{ "port", required_argument, NULL, 'p' },
 
 	{ 0, 0, 0, 0 }
 };
@@ -31,12 +34,21 @@ const char opt_help[] =
 
 int main(int argc, char *argv[]) {
 	int opt;
+	unsigned int port = 0;
+	char *tmp;
 
 	struct event_base *evb;
 	struct evhttp *http;
 
-	while ((opt = getopt_long(argc, argv, "hV", opts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hVp:", opts, NULL)) != -1) {
 		switch (opt) {
+			case 'p':
+				port = strtol(optarg, &tmp, 0);
+				if (*tmp || !port || port >= 0xffff) {
+					printf("Invalid port number: %s\n", optarg);
+					return 1;
+				}
+				break;
 			case 'V':
 				printf("%s\n", PACKAGE_STRING);
 				return 0;
@@ -64,14 +76,23 @@ int main(int argc, char *argv[]) {
 	evhttp_set_allowed_methods(http, EVHTTP_REQ_GET | EVHTTP_REQ_HEAD);
 	evhttp_set_gencb(http, handle_file, &argv[optind]);
 	evhttp_set_cb(http, "/", handle_index, &argv[optind]);
-	if (evhttp_bind_socket(http, "0.0.0.0", 8080)) {
-		printf("evhttp_bind_socket() failed.\n");
+
+	if (!port) {
+		srandom(time(NULL));
+		/* generate a random port between 0x400 and 0x7fff
+		 * e.g. above the privileged ports but below outgoing */
+		port = random() % 0x7bff + 0x400;
+	}
+
+	if (evhttp_bind_socket(http, "0.0.0.0", port)) {
+		printf("evhttp_bind_socket(0.0.0.0, %d) failed.\n", port);
 		return 1;
 	}
 
 	init_content_type();
 
 	printf("Ready to share %d files.\n", argc - optind);
+	printf("Bound to 0.0.0.0:%d.\n", port);
 
 	event_base_dispatch(evb);
 	destroy_content_type();
