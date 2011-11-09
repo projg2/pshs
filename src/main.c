@@ -51,6 +51,12 @@ void handle_file(struct evhttp_request *req, void *data) {
 				printf("fstat(%s) says it is not a regular file\n", vpath);
 			else {
 				struct evbuffer *buf = evbuffer_new();
+				struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
+				assert(headers);
+
+				if (evhttp_add_header(headers, "Content-Type",
+							"application/octet-stream"))
+					printf("evhttp_add_header(Content-Type) failed\n");
 
 				evbuffer_add_file(buf, fd, 0, st.st_size);
 				evhttp_send_reply(req, 200, "OK", buf);
