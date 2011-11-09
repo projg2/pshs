@@ -10,7 +10,10 @@
 #include <string.h>
 #include <assert.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 
 #include <event2/buffer.h>
@@ -39,32 +42,41 @@ void handle_file(struct evhttp_request *req, void *data) {
 	if (!has_file(vpath, argv))
 		evhttp_send_error(req, 404, "Not Found");
 	else {
-		ev_off_t size;
-		const char *ct;
-		int fd = open_ct(vpath, &ct, &size);
+		int fd = open(vpath, O_RDONLY);
 
-		if (fd != -1) {
-			struct evbuffer *buf = evbuffer_new();
-			struct evkeyvalq *inhead = evhttp_request_get_input_headers(req);
-			struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
+		if (fd == -1)
+			printf("open(%s) failed: %s\n", vpath, strerror(errno));
+		else {
+			struct stat st;
 
-			const char *range;
+			if (fstat(fd, &st))
+				printf("fstat(%s) failed: %s\n", vpath, strerror(errno));
+			else if (!S_ISREG(st.st_mode))
+				printf("fstat(%s) says it is not a regular file\n", vpath);
+			else {
+				struct evbuffer *buf = evbuffer_new();
+				struct evkeyvalq *inhead = evhttp_request_get_input_headers(req);
+				struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
 
-			assert(inhead);
-			assert(headers);
+				const char *range;
 
-			range = evhttp_find_header(inhead, "Range");
-			if (range) {
-				evhttp_send_error(req, 501, "Not Implemented");
-			} else {
-				if (evhttp_add_header(headers, "Content-Type", ct))
-					printf("evhttp_add_header(Content-Type) failed\n");
+				assert(inhead);
+				assert(headers);
 
-				evbuffer_add_file(buf, fd, 0, size);
-				evhttp_send_reply(req, 200, "OK", buf);
+				range = evhttp_find_header(inhead, "Range");
+				if (range) {
+					evhttp_send_error(req, 501, "Not Implemented");
+				} else {
+					if (evhttp_add_header(headers, "Content-Type",
+								guess_content_type(fd)))
+						printf("evhttp_add_header(Content-Type) failed\n");
 
-				evbuffer_free(buf);
-				return;
+					evbuffer_add_file(buf, fd, 0, st.st_size);
+					evhttp_send_reply(req, 200, "OK", buf);
+
+					evbuffer_free(buf);
+					return;
+				}
 			}
 
 			close(fd);
@@ -94,13 +106,9 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	init_content_type();
-
 	event_base_dispatch(evb);
 	evhttp_free(http);
 	event_base_free(evb);
-
-	destroy_content_type();
 
 	return 0;
 }
