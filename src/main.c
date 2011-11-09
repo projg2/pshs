@@ -30,7 +30,9 @@ const char opt_help[] =
 "\n"
 "Options:\n"
 "    --help, -h           print this help message\n"
-"    --version, -V        print program version and exit\n";
+"    --version, -V        print program version and exit\n"
+"\n"
+"    --port N, -p N       set port to listen on (default: random)\n";
 
 int main(int argc, char *argv[]) {
 	int opt;
