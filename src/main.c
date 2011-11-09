@@ -8,6 +8,12 @@
 #include <string.h>
 #include <assert.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
 #include <event2/buffer.h>
 #include <event2/event.h>
 #include <event2/http.h>
@@ -32,12 +38,30 @@ void handle_file(struct evhttp_request *req, void *data) {
 	if (!has_file(vpath, argv))
 		evhttp_send_error(req, 404, "Not Found");
 	else {
-		struct evbuffer *buf = evbuffer_new();
+		int fd = open(vpath, O_RDONLY);
 
-		evbuffer_add_printf(buf, "testzor\n");
-		evhttp_send_reply(req, 200, "OK", buf);
+		if (fd == -1)
+			printf("open(%s) failed: %s\n", vpath, strerror(errno));
+		else {
+			struct stat st;
 
-		evbuffer_free(buf);
+			if (fstat(fd, &st))
+				printf("fstat(%s) failed: %s\n", vpath, strerror(errno));
+			else if (!S_ISREG(st.st_mode))
+				printf("fstat(%s) says it is not a regular file\n", vpath);
+			else {
+				struct evbuffer *buf = evbuffer_new();
+
+				evbuffer_add_file(buf, fd, 0, st.st_size);
+				evhttp_send_reply(req, 200, "OK", buf);
+
+				evbuffer_free(buf);
+				return;
+			}
+
+			close(fd);
+		}
+		evhttp_send_error(req, 500, "Internal Server Error");
 	}
 }
 
