@@ -121,7 +121,8 @@ int main(int argc, char *argv[]) {
 	printf("Ready to share %d files.\n", argc - optind);
 	printf("Bound to 0.0.0.0:%d.\n", port);
 	if (extip)
-		printf("Files available at: http://%s:%d/\n", extip, port);
+		printf("Server reachable at: http://%s:%d/%s\n", extip, port,
+				argc - optind == 1 ? argv[optind] : "");
 
 	for (i = 0; i < 5; i++) {
 		sigevents[i] = evsignal_new(evb, sigs[i], term_handler, evb);
