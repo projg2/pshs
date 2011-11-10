@@ -7,7 +7,7 @@
 #ifndef _PSHS_NETWORK_H
 #define _PSHS_NETWORK_H
 
-const char *init_external_ip(unsigned int port, int use_upnp);
+const char *init_external_ip(unsigned int port, const char *bindip, int use_upnp);
 void destroy_external_ip(unsigned int port);
 
 #endif /*_PSHS_NETWORK_H*/

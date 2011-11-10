@@ -34,12 +34,12 @@ static char lan_addr[16];
 static int upnp_enabled;
 #endif
 
-const char *init_external_ip(unsigned int port, int use_upnp) {
+const char *init_external_ip(unsigned int port, const char *bindip, int use_upnp) {
 #ifdef HAVE_LIBMINIUPNPC
 #	ifdef LIBMINIUPNPC_SO_8
-	struct UPNPDev* devlist = upnpDiscover(discovery_delay, NULL, NULL, 0, 0, NULL);
+	struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0, 0, NULL);
 #	else
-	struct UPNPDev* devlist = upnpDiscover(discovery_delay, NULL, NULL, 0);
+	struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0);
 #	endif
 
 	int ret = UPNP_GetValidIGD(devlist, &upnp_urls, &upnp_data,

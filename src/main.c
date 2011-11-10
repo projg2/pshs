@@ -28,6 +28,7 @@ const struct option opts[] = {
 	{ "help", no_argument, NULL, 'h' },
 	{ "version", no_argument, NULL, 'V' },
 
+	{ "bind", required_argument, NULL, 'b' },
 	{ "port", required_argument, NULL, 'p' },
 	{ "no-upnp", required_argument, NULL, 'U' },
 
@@ -44,10 +45,12 @@ const char opt_help[] =
 #ifdef HAVE_LIBMINIUPNPC
 "    --no-upnp, -U        disable port redirection using UPnP\n"
 #endif
+"    --bind IP, -b IP     bind the server to IP address\n"
 "    --port N, -p N       set port to listen on (default: random)\n";
 
 int main(int argc, char *argv[]) {
 	int opt;
+	const char *bindip = "0.0.0.0";
 	unsigned int port = 0;
 	int upnp = 1;
 	char *tmp;
@@ -61,8 +64,11 @@ int main(int argc, char *argv[]) {
 
 	const char *extip;
 
-	while ((opt = getopt_long(argc, argv, "hVp:U", opts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hVb:p:U", opts, NULL)) != -1) {
 		switch (opt) {
+			case 'b':
+				bindip = optarg;
+				break;
 			case 'p':
 				port = strtol(optarg, &tmp, 0);
 				if (*tmp || !port || port >= 0xffff) {
@@ -110,16 +116,17 @@ int main(int argc, char *argv[]) {
 		port = random() % 0x7bff + 0x400;
 	}
 
-	if (evhttp_bind_socket(http, "0.0.0.0", port)) {
-		printf("evhttp_bind_socket(0.0.0.0, %d) failed.\n", port);
+	if (evhttp_bind_socket(http, bindip, port)) {
+		printf("evhttp_bind_socket(%s, %d) failed.\n",
+				bindip, port);
 		return 1;
 	}
 
 	init_content_type();
-	extip = init_external_ip(port, upnp);
+	extip = init_external_ip(port, bindip, upnp);
 
 	printf("Ready to share %d files.\n", argc - optind);
-	printf("Bound to 0.0.0.0:%d.\n", port);
+	printf("Bound to %s:%d.\n", bindip, port);
 	if (extip)
 		printf("Server reachable at: http://%s:%d/%s\n", extip, port,
 				argc - optind == 1 ? argv[optind] : "");
