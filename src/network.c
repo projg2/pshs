@@ -85,7 +85,7 @@ const char *init_external_ip(unsigned int port, const char *bindip, int use_upnp
 	} else if (ret)
 		FreeUPNPUrls(&(upnp_urls));
 #endif
-	return NULL;
+	return !strcmp(bindip, "0.0.0.0") ? NULL : bindip;
 }
 
 void destroy_external_ip(unsigned int port) {
