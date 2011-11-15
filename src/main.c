@@ -11,6 +11,10 @@
 #include <signal.h>
 
 #include <getopt.h>
+#include <locale.h>
+#ifdef HAVE_NL_LANGINFO
+#	include <langinfo.h>
+#endif
 
 #include <event2/event.h>
 #include <event2/http.h>
@@ -75,6 +79,8 @@ int main(int argc, char *argv[]) {
 
 	const char *extip;
 
+	setlocale(LC_ALL, "");
+
 	while ((opt = getopt_long(argc, argv, "hVb:p:U", opts, NULL)) != -1) {
 		switch (opt) {
 			case 'b':
@@ -137,7 +143,14 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+#ifdef HAVE_NL_LANGINFO
+	tmp = nl_langinfo(CODESET);
+	if (!*tmp)
+#endif
+		tmp = NULL;
+
 	/* init helper modules */
+	init_charset(tmp);
 	init_content_type();
 	extip = init_external_ip(port, bindip, upnp);
 

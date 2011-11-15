@@ -21,6 +21,22 @@
 #include "handlers.h"
 #include "content-type.h"
 
+char ct_buf[80];
+
+/**
+ * init_charset
+ * @charset: new charset or %NULL
+ *
+ * Set the new charset (file name encoding).
+ */
+void init_charset(const char *charset) {
+	strcpy(ct_buf, "text/html"); /* 9b */
+	if (charset && strlen(charset) < sizeof(ct_buf) - 20) {
+		strcpy(&ct_buf[9], "; charset=");
+		strcpy(&ct_buf[19], charset);
+	}
+}
+
 /**
  * has_file
  * @path: requested path
@@ -144,7 +160,6 @@ void handle_index(struct evhttp_request *req, void *data) {
 	print_req(req);
 
 	assert(headers);
-	/* XXX: charset=locale? */
 	if (evhttp_add_header(headers, "Content-Type",
 				"text/html; charset=utf-8"))
 		printf("evhttp_add_header(Content-Type) failed\n");
