@@ -30,7 +30,7 @@ const struct option opts[] = {
 
 	{ "bind", required_argument, NULL, 'b' },
 	{ "port", required_argument, NULL, 'p' },
-	{ "no-upnp", required_argument, NULL, 'U' },
+	{ "no-upnp", no_argument, NULL, 'U' },
 
 	{ 0, 0, 0, 0 }
 };
