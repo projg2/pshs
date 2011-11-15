@@ -26,6 +26,7 @@
 struct addr_search_data {
 	const char *addr;
 	int scope;
+	int islocal;
 };
 
 static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *data) {
@@ -39,10 +40,30 @@ static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *da
 
 	if (addr->ifa_family == AF_INET && rta_tb[IFA_LOCAL]) {
 		struct sockaddr_in *in = (void*) rta_tb[IFA_LOCAL];
+		/* using char[4] allows us to ignore endianness */
+		unsigned char *binaddr = (void*) &(in->sin_addr.s_addr);
+		enum {
+			ISLOCAL_NO,
+			ISLOCAL_NET,
+			ISLOCAL_APIPA,
+			ISLOCAL_HOST
+		} islocal = ISLOCAL_NO;
 
-		if (!out->addr || addr->ifa_scope < out->scope) {
+		if (binaddr[0] == 127)
+			islocal = ISLOCAL_HOST;
+		else if (binaddr[0] == 10)
+			islocal = ISLOCAL_NET;
+		else if (binaddr[0] == 192 && binaddr[1] == 168)
+			islocal = ISLOCAL_NET;
+		else if (binaddr[0] == 169 && binaddr[1] == 254)
+			islocal = ISLOCAL_APIPA;
+		else if (binaddr[0] == 172 && binaddr[1] >= 16 && binaddr[1] < 32)
+			islocal = ISLOCAL_NET;
+
+		if (!out->addr || addr->ifa_scope < out->scope || islocal < out->islocal) {
 			out->addr = inet_ntoa(in->sin_addr);
 			out->scope = addr->ifa_scope;
+			out->islocal = islocal;
 		}
 	}
 }
