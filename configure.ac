@@ -18,6 +18,13 @@ AS_IF([test x"$enable_libmagic" != x"no"], [
 	AC_CHECK_LIB([magic], [magic_descriptor])
 ])
 
+AC_ARG_ENABLE([netlink],
+	[AS_HELP_STRING([--disable-netlink],
+		[Disable getting IP via netlink])])
+AS_IF([test x"$enable_netlink" != x"no"], [
+	AC_CHECK_LIB([netlink], [rtnl_wilddump_request])
+])
+
 AC_ARG_ENABLE([upnp],
 	[AS_HELP_STRING([--disable-upnp],
 		[Disable use of UPnP (via libminiupnpc)])])
