@@ -100,15 +100,15 @@ const char *get_rtnl_external_ip(void) {
 	struct addr_search_data out = { NULL };
 
 	if (rtnl_open(&rth, 0) < 0) {
-		printf("rtnl_open() failed\n");
+		fprintf(stderr, "rtnl_open() failed\n");
 		return NULL;
 	}
 
 	if (rtnl_wilddump_request(&rth, AF_INET, RTM_GETADDR) >= 0) {
 		if (rtnl_dump_filter(&rth, store_addr, &out, NULL, NULL) < 0)
-			printf("rtnl_dump_filter() failed\n");
+			fprintf(stderr, "rtnl_dump_filter() failed\n");
 	} else
-		printf("rtnl_wilddump_request() failed: %s\n", strerror(errno));
+		fprintf(stderr, "rtnl_wilddump_request() failed: %s\n", strerror(errno));
 
 	rtnl_close(&rth);
 	return out.addr;

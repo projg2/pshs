@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 				port = strtol(optarg, &tmp, 0);
 				/* port needs to be uint16 */
 				if (*tmp || !port || port >= 0xffff) {
-					printf("Invalid port number: %s\n", optarg);
+					fprintf(stderr, "Invalid port number: %s\n", optarg);
 					return 1;
 				}
 				break;
@@ -108,18 +108,18 @@ int main(int argc, char *argv[]) {
 
 	/* no files supplied */
 	if (argc == optind) {
-		printf(opt_help, argv[0]);
+		fprintf(stderr, opt_help, argv[0]);
 		return 1;
 	}
 
 	evb = event_base_new();
 	if (!evb) {
-		printf("event_base_new() failed.\n");
+		fprintf(stderr, "event_base_new() failed.\n");
 		return 1;
 	}
 	http = evhttp_new(evb);
 	if (!http) {
-		printf("evhttp_new() failed.\n");
+		fprintf(stderr, "evhttp_new() failed.\n");
 		return 1;
 	}
 	/* we're just a small download server, GET & HEAD should handle it all */
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (evhttp_bind_socket(http, bindip, port)) {
-		printf("evhttp_bind_socket(%s, %d) failed.\n",
+		fprintf(stderr, "evhttp_bind_socket(%s, %d) failed.\n",
 				bindip, port);
 		return 1;
 	}
@@ -154,17 +154,17 @@ int main(int argc, char *argv[]) {
 	init_content_type();
 	extip = init_external_ip(port, bindip, upnp);
 
-	printf("Ready to share %d files.\n", argc - optind);
-	printf("Bound to %s:%d.\n", bindip, port);
+	fprintf(stderr, "Ready to share %d files.\n", argc - optind);
+	fprintf(stderr, "Bound to %s:%d.\n", bindip, port);
 	if (extip)
-		printf("Server reachable at: http://%s:%d/%s\n", extip, port,
+		fprintf(stderr, "Server reachable at: http://%s:%d/%s\n", extip, port,
 				argc - optind == 1 ? argv[optind] : "");
 
 	/* init signal handlers */
 	for (i = 0; i < 5; i++) {
 		sigevents[i] = evsignal_new(evb, sigs[i], term_handler, evb);
 		if (!sigevents[i])
-			printf("evsignal_new(%d) failed.\n", sigs[i]);
+			fprintf(stderr, "evsignal_new(%d) failed.\n", sigs[i]);
 		else
 			event_add(sigevents[i], NULL);
 	}

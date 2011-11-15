@@ -31,10 +31,10 @@ void init_content_type(void) {
 #ifdef HAVE_LIBMAGIC
 	magic = magic_open(MAGIC_MIME);
 	if (!magic)
-		printf("magic_open() failed: %s\n", strerror(errno));
+		fprintf(stderr, "magic_open() failed: %s\n", strerror(errno));
 	else {
 		if (magic_load(magic, NULL)) {
-			printf("magic_load() failed: %s\n", magic_error(magic));
+			fprintf(stderr, "magic_load() failed: %s\n", magic_error(magic));
 			magic_close(magic);
 			magic = NULL;
 		}
@@ -73,14 +73,14 @@ const char *guess_content_type(int fd) {
 		int dupfd = dup(fd);
 
 		if (dupfd == -1)
-			printf("dup() failed: %s\n", strerror(errno));
+			fprintf(stderr, "dup() failed: %s\n", strerror(errno));
 		else {
 			const char *ct = magic_descriptor(magic, dupfd);
 
 			close(dupfd);
 			if (ct)
 				return ct;
-			printf("magic_descriptor() failed: %s\n", magic_error(magic));
+			fprintf(stderr, "magic_descriptor() failed: %s\n", magic_error(magic));
 		}
 	}
 #endif

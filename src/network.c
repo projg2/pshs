@@ -83,7 +83,7 @@ const char *init_external_ip(unsigned int port, const char *bindip, int use_upnp
 #endif
 					NULL);
 			if (ret != UPNPCOMMAND_SUCCESS) {
-				printf("UPNP_AddPortMapping() failed: %s\n", strupnperror(ret));
+				fprintf(stderr, "UPNP_AddPortMapping() failed: %s\n", strupnperror(ret));
 				upnp_enabled = 0;
 				FreeUPNPUrls(&(upnp_urls));
 			} else {
@@ -133,7 +133,7 @@ void destroy_external_ip(unsigned int port) {
 #endif
 				strport, "tcp", NULL);
 		if (ret != UPNPCOMMAND_SUCCESS)
-			printf("UPNP_DeletePortMapping() failed: %s\n", strupnperror(ret));
+			fprintf(stderr, "UPNP_DeletePortMapping() failed: %s\n", strupnperror(ret));
 		FreeUPNPUrls(&(upnp_urls));
 	}
 #endif

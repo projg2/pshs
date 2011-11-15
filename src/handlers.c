@@ -100,16 +100,16 @@ void handle_file(struct evhttp_request *req, void *data) {
 		int fd = open(vpath, O_RDONLY);
 
 		if (fd == -1)
-			printf("open(%s) failed: %s\n", vpath, strerror(errno));
+			fprintf(stderr, "open(%s) failed: %s\n", vpath, strerror(errno));
 		else {
 			struct stat st;
 
 			/* we need to have a regular file here,
 			 * with static Content-Length */
 			if (fstat(fd, &st))
-				printf("fstat(%s) failed: %s\n", vpath, strerror(errno));
+				fprintf(stderr, "fstat(%s) failed: %s\n", vpath, strerror(errno));
 			else if (!S_ISREG(st.st_mode))
-				printf("fstat(%s) says it is not a regular file\n", vpath);
+				fprintf(stderr, "fstat(%s) says it is not a regular file\n", vpath);
 			else {
 				struct evbuffer *buf = evbuffer_new();
 				struct evkeyvalq *inhead = evhttp_request_get_input_headers(req);
@@ -128,7 +128,7 @@ void handle_file(struct evhttp_request *req, void *data) {
 					/* Good Content-Type is nice for users. */
 					if (evhttp_add_header(headers, "Content-Type",
 								guess_content_type(fd)))
-						printf("evhttp_add_header(Content-Type) failed\n");
+						fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
 
 					/* Sent the file. */
 					evbuffer_add_file(buf, fd, 0, st.st_size);
@@ -162,7 +162,7 @@ void handle_index(struct evhttp_request *req, void *data) {
 	assert(headers);
 	if (evhttp_add_header(headers, "Content-Type",
 				"text/html; charset=utf-8"))
-		printf("evhttp_add_header(Content-Type) failed\n");
+		fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
 
 	generate_index(buf, argv);
 
