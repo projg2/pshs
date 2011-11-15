@@ -36,55 +36,58 @@ static int upnp_enabled;
 
 const char *init_external_ip(unsigned int port, const char *bindip, int use_upnp) {
 #ifdef HAVE_LIBMINIUPNPC
+	if (use_upnp) {
 #	ifdef LIBMINIUPNPC_SO_8
-	struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0, 0, NULL);
+		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0, 0, NULL);
 #	else
-	struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0);
+		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0);
 #	endif
 
-	int ret = UPNP_GetValidIGD(devlist, &upnp_urls, &upnp_data,
-			lan_addr, sizeof(lan_addr));
-	freeUPNPDevlist(devlist);
+		int ret = UPNP_GetValidIGD(devlist, &upnp_urls, &upnp_data,
+				lan_addr, sizeof(lan_addr));
+		freeUPNPDevlist(devlist);
 
-	upnp_enabled = (ret == 1);
-	if (upnp_enabled) {
-		char strport[6];
-		sprintf(strport, "%d", port);
+		upnp_enabled = (ret == 1);
+		if (upnp_enabled) {
+			char strport[6];
+			sprintf(strport, "%d", port);
 
-		ret = UPNP_AddPortMapping(
-				upnp_urls.controlURL,
-#ifdef LIBMINIUPNPC_SO_5
-				upnp_data.first.servicetype,
-#else
-				upnp_data.servicetype,
-#endif
-				strport, strport, lan_addr,
-				"Pretty small HTTP server",
-				"tcp",
-#ifdef LIBMINIUPNPC_SO_8
-				NULL,
-#endif
-				NULL);
-		if (ret != UPNPCOMMAND_SUCCESS) {
-			printf("UPNP_AddPortMapping() failed: %s\n", strupnperror(ret));
-			upnp_enabled = 0;
-			FreeUPNPUrls(&(upnp_urls));
-		} else {
-			static char extip[16];
-
-			if (UPNP_GetExternalIPAddress(
+			ret = UPNP_AddPortMapping(
 					upnp_urls.controlURL,
 #ifdef LIBMINIUPNPC_SO_5
 					upnp_data.first.servicetype,
 #else
 					upnp_data.servicetype,
 #endif
-					extip) == UPNPCOMMAND_SUCCESS)
-				return extip;
-		}
-	} else if (ret)
-		FreeUPNPUrls(&(upnp_urls));
+					strport, strport, lan_addr,
+					"Pretty small HTTP server",
+					"tcp",
+#ifdef LIBMINIUPNPC_SO_8
+					NULL,
 #endif
+					NULL);
+			if (ret != UPNPCOMMAND_SUCCESS) {
+				printf("UPNP_AddPortMapping() failed: %s\n", strupnperror(ret));
+				upnp_enabled = 0;
+				FreeUPNPUrls(&(upnp_urls));
+			} else {
+				static char extip[16];
+
+				if (UPNP_GetExternalIPAddress(
+						upnp_urls.controlURL,
+#ifdef LIBMINIUPNPC_SO_5
+						upnp_data.first.servicetype,
+#else
+						upnp_data.servicetype,
+#endif
+						extip) == UPNPCOMMAND_SUCCESS)
+					return extip;
+			}
+		} else if (ret)
+			FreeUPNPUrls(&(upnp_urls));
+	}
+#endif
+
 	return !strcmp(bindip, "0.0.0.0") ? NULL : bindip;
 }
 
