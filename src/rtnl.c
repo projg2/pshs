@@ -29,27 +29,42 @@ struct addr_search_data {
 	int islocal;
 };
 
+/**
+ * store_addr
+ * @sa: netlink address
+ * @n: message header
+ * @data: output buffer
+ *
+ * Handle netlink address message. Put the most useful IP address found in
+ * output struct @data.
+ *
+ * Returns: 0
+ */
 static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *data) {
 	struct addr_search_data *out = data;
 	struct ifaddrmsg *addr = NLMSG_DATA(n);
 	struct rtattr * rta_tb[IFA_MAX+1];
 	char buf[256];
 
+	/* Based heavily on iproute2,
+	 * IOW: I'm not sure that I want to know what happens here. */
 	parse_rtattr(rta_tb, IFA_MAX, IFA_RTA(addr),
 			n->nlmsg_len - NLMSG_LENGTH(sizeof(*addr)));
 
 	if (addr->ifa_family == AF_INET && rta_tb[IFA_LOCAL]) {
+		/* Get the actual IP address */
 		struct sockaddr_in *in = (void*) rta_tb[IFA_LOCAL];
 		/* using char[4] allows us to ignore endianness */
 		unsigned char *binaddr = (void*) &(in->sin_addr.s_addr);
-		enum {
-			ISLOCAL_NO,
-			ISLOCAL_NET,
-			ISLOCAL_APIPA,
-			ISLOCAL_HOST
+
+		enum { /* most preferred first */
+			ISLOCAL_NO, /* global address */
+			ISLOCAL_NET, /* address reserved for local network */
+			ISLOCAL_APIPA, /* automatic address assignment */
+			ISLOCAL_HOST /* localhost address */
 		} islocal = ISLOCAL_NO;
 
-		if (binaddr[0] == 127)
+		if (binaddr[0] == 127) /* localhost */
 			islocal = ISLOCAL_HOST;
 		else if (binaddr[0] == 10)
 			islocal = ISLOCAL_NET;
@@ -57,18 +72,28 @@ static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *da
 			islocal = ISLOCAL_NET;
 		else if (binaddr[0] == 169 && binaddr[1] == 254)
 			islocal = ISLOCAL_APIPA;
-		else if (binaddr[0] == 172 && binaddr[1] >= 16 && binaddr[1] < 32)
+		else if (binaddr[0] == 172 && binaddr[1] >= 16 && binaddr[1] < 32) 
 			islocal = ISLOCAL_NET;
 
+		/* prefer global scope, and global addresses */
 		if (!out->addr || addr->ifa_scope < out->scope || islocal < out->islocal) {
 			out->addr = inet_ntoa(in->sin_addr);
 			out->scope = addr->ifa_scope;
 			out->islocal = islocal;
 		}
 	}
+
+	return 0;
 }
 #endif
 
+/**
+ * get_rtnl_external_ip
+ *
+ * Try to get external IP from local network interfaces using netlink.
+ *
+ * Returns: best IP address found on the system, in a static buffer
+ */
 const char *get_rtnl_external_ip(void) {
 #ifdef HAVE_LIBNETLINK
 	struct rtnl_handle rth;

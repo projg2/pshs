@@ -18,6 +18,14 @@
 #include "handlers.h"
 #include "network.h"
 
+/**
+ * term_handler
+ * @fd: (unused)
+ * @what: (unused)
+ * @data: the event base
+ *
+ * Handle SIGTERM or a similar signal -- terminate the main loop.
+ */
 static void term_handler(evutil_socket_t fd, short what, void *data) {
 	struct event_base *evb = data;
 
@@ -49,18 +57,21 @@ const char opt_help[] =
 "    --port N, -p N       set port to listen on (default: random)\n";
 
 int main(int argc, char *argv[]) {
-	int opt;
+	/* temporary variables */
+	int opt, i;
+	char *tmp;
+
+	/* default config */
 	const char *bindip = "0.0.0.0";
 	unsigned int port = 0;
 	int upnp = 1;
-	char *tmp;
 
+	/* main variables */
 	struct event_base *evb;
 	struct evhttp *http;
 
 	struct event *sigevents[5];
 	const int sigs[5] = { SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2 };
-	int i;
 
 	const char *extip;
 
@@ -71,6 +82,7 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'p':
 				port = strtol(optarg, &tmp, 0);
+				/* port needs to be uint16 */
 				if (*tmp || !port || port >= 0xffff) {
 					printf("Invalid port number: %s\n", optarg);
 					return 1;
@@ -88,12 +100,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (argc - optind == 0) {
+	/* no files supplied */
+	if (argc == optind) {
 		printf(opt_help, argv[0]);
 		return 1;
 	}
-
-	event_enable_debug_mode();
 
 	evb = event_base_new();
 	if (!evb) {
@@ -105,10 +116,14 @@ int main(int argc, char *argv[]) {
 		printf("evhttp_new() failed.\n");
 		return 1;
 	}
+	/* we're just a small download server, GET & HEAD should handle it all */
 	evhttp_set_allowed_methods(http, EVHTTP_REQ_GET | EVHTTP_REQ_HEAD);
+	/* generic callback - file download */
 	evhttp_set_gencb(http, handle_file, &argv[optind]);
+	/* index callback */
 	evhttp_set_cb(http, "/", handle_index, &argv[optind]);
 
+	/* if no port was provided, choose a nice random value */
 	if (!port) {
 		srandom(time(NULL));
 		/* generate a random port between 0x400 and 0x7fff
@@ -122,6 +137,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	/* init helper modules */
 	init_content_type();
 	extip = init_external_ip(port, bindip, upnp);
 
@@ -131,6 +147,7 @@ int main(int argc, char *argv[]) {
 		printf("Server reachable at: http://%s:%d/%s\n", extip, port,
 				argc - optind == 1 ? argv[optind] : "");
 
+	/* init signal handlers */
 	for (i = 0; i < 5; i++) {
 		sigevents[i] = evsignal_new(evb, sigs[i], term_handler, evb);
 		if (!sigevents[i])
@@ -139,15 +156,19 @@ int main(int argc, char *argv[]) {
 			event_add(sigevents[i], NULL);
 	}
 
+	/* run the loop */
 	event_base_dispatch(evb);
 
+	/* clean up external modules */
 	destroy_external_ip(port);
 	destroy_content_type();
 
+	/* clean up signal handlers */
 	for (i = 0; i < 5; i++) {
 		if (sigevents[i])
 			event_free(sigevents[i]);
 	}
+
 	evhttp_free(http);
 	event_base_free(evb);
 

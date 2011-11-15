@@ -15,11 +15,18 @@
 #ifdef HAVE_LIBMAGIC
 #	include <magic.h>
 
+/* XXX: make this local, pass within funcs? */
 magic_t magic;
 #endif
 
 #include "content-type.h"
 
+/**
+ * init_content_type
+ *
+ * Init Content-Type guessing algos. If libmagic is enabled, initialize it
+ * and load the database.
+ */
 void init_content_type(void) {
 #ifdef HAVE_LIBMAGIC
 	magic = magic_open(MAGIC_MIME);
@@ -35,6 +42,11 @@ void init_content_type(void) {
 #endif
 }
 
+/**
+ * destroy_content_type
+ *
+ * Clean up after Content-Type guessing. Unload libmagic if enabled.
+ */
 void destroy_content_type(void) {
 #ifdef HAVE_LIBMAGIC
 	if (magic)
@@ -42,9 +54,22 @@ void destroy_content_type(void) {
 #endif
 }
 
+/**
+ * guess_content_type
+ * @fd: open file descriptor
+ *
+ * Guess file format for open file @fd and return it as a string.
+ *
+ * The passed descriptor will be duplicated before using so it does not need to
+ * be reopened/seeked back.
+ *
+ * Returns: file MIME type
+ */
 const char *guess_content_type(int fd) {
 #ifdef HAVE_LIBMAGIC
 	if (magic) {
+		/* we have to always dup() it;
+		 * even if we seek it back to 0, mmap() won't like an used file */
 		int dupfd = dup(fd);
 
 		if (dupfd == -1)
