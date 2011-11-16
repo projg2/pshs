@@ -38,7 +38,7 @@ const char tail[] =
 
 /* Building parts of a single link. */
 
-const char filenameprefix[] = "<li><a href='/";
+const char filenameprefix[] = "<li><a href='./";
 const char filenamemidfix[] = "'>";
 const char filenamesuffix[] = "</a></li>";
 
