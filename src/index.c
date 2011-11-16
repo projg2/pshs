@@ -16,12 +16,23 @@ const char head[] = "<!DOCTYPE html>\n"
 	"<html>"
 		"<head>"
 			"<meta charset='utf-8'/>"
+			"<style type='text/css'>"
+				"address {"
+					"font-size: 6em;"
+					"color: #eee;"
+					"position: absolute;"
+					"right: 2cm;"
+					"bottom: 1cm;"
+					"z-index: -1000;"
+				"}"
+			"</style>"
 		"</head>"
 		"<body>"
 			"<ol>";
 
 const char tail[] =
 			"</ol>"
+			"<address>pshs</address>"
 		"</body>"
 	"</html>";
 
