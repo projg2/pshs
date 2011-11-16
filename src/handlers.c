@@ -16,6 +16,19 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#ifdef HAVE_STDINT_H
+#	include <stdint.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+#	include <inttypes.h>
+#endif
+#ifndef SCNdMAX
+#	define SCNdMAX "ld"
+#endif
+#ifndef PRIdMAX
+#	define PRIdMAX "ld"
+#endif
+
 #include <event2/buffer.h>
 
 #include "handlers.h"
@@ -116,28 +129,57 @@ void handle_file(struct evhttp_request *req, void *data) {
 				struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
 
 				const char *range;
+				intmax_t first = 0, last = -1;
+				ev_off_t size = st.st_size;
 
 				assert(inhead);
 				assert(headers);
 
-				/* Range requests aren't implemented yet. */
 				range = evhttp_find_header(inhead, "Range");
 				if (range) {
-					evhttp_send_error(req, 501, "Not Implemented");
-				} else {
-					/* Good Content-Type is nice for users. */
-					if (evhttp_add_header(headers, "Content-Type",
-								guess_content_type(fd)))
-						fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
+					/* We support only single byte range,
+					 * so fail on ',' or invalid bytes=%d-%d */
+					if (strchr(range, ',') || sscanf(range,
+								"bytes = %" SCNdMAX " - %" SCNdMAX,
+								&first, &last) < 1) {
+						evhttp_send_error(req, 501, "Not Implemented");
+						close(fd);
+						return;
+					}
+				}
 
-					/* Send the file. */
-					evbuffer_set_flags(buf, EVBUFFER_FLAG_DRAINS_TO_FD);
-					evbuffer_add_file(buf, fd, 0, st.st_size);
-					evhttp_send_reply(req, 200, "OK", buf);
+				if (first < 0)
+					first += size;
+				if (last < 0)
+					last += size;
 
-					evbuffer_free(buf);
+				if (first > last) {
+					evhttp_send_error(req, 416, "Requested Range Not Satisfiable");
+					close(fd);
 					return;
 				}
+
+				/* Good Content-Type is nice for users. */
+				if (evhttp_add_header(headers, "Content-Type",
+							guess_content_type(fd)))
+					fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
+
+				/* Send the file. */
+				evbuffer_set_flags(buf, EVBUFFER_FLAG_DRAINS_TO_FD);
+				evbuffer_add_file(buf, fd, first, last - first + 1);
+				if (range) {
+					char lenbuf[96]; /* XXX */
+					sprintf(lenbuf, "bytes %" PRIdMAX "-%" PRIdMAX
+							"/%" PRIdMAX, first, last, (intmax_t) size);
+
+					if (evhttp_add_header(headers, "Content-Range", lenbuf))
+						fprintf(stderr, "evhttp_add_header(Content-Range) failed\n");
+					evhttp_send_reply(req, 206, "Partial Content", buf);
+				} else
+					evhttp_send_reply(req, 200, "OK", buf);
+
+				evbuffer_free(buf);
+				return;
 			}
 
 			close(fd);
