@@ -130,7 +130,8 @@ void handle_file(struct evhttp_request *req, void *data) {
 								guess_content_type(fd)))
 						fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
 
-					/* Sent the file. */
+					/* Send the file. */
+					evbuffer_set_flags(buf, EVBUFFER_FLAG_DRAINS_TO_FD);
 					evbuffer_add_file(buf, fd, 0, st.st_size);
 					evhttp_send_reply(req, 200, "OK", buf);
 
