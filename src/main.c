@@ -112,6 +112,12 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	/* Remove ./ prefixes from filenames, they're known to cause trouble. */
+	for (i = optind; i < argc; i++) {
+		if (argv[i][0] == '.' && argv[i][1] == '/')
+			argv[i] += 2;
+	}
+
 	evb = event_base_new();
 	if (!evb) {
 		fprintf(stderr, "event_base_new() failed.\n");
