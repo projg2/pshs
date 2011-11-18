@@ -19,6 +19,7 @@
 #include <event2/event.h>
 #include <event2/http.h>
 
+#include "content-type.h"
 #include "handlers.h"
 #include "network.h"
 

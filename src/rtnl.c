@@ -44,7 +44,6 @@ static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *da
 	struct addr_search_data *out = data;
 	struct ifaddrmsg *addr = NLMSG_DATA(n);
 	struct rtattr * rta_tb[IFA_MAX+1];
-	char buf[256];
 
 	/* Based heavily on iproute2,
 	 * IOW: I'm not sure that I want to know what happens here. */

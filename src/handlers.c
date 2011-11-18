@@ -33,6 +33,7 @@
 
 #include "handlers.h"
 #include "content-type.h"
+#include "index.h"
 
 char ct_buf[80];
 
