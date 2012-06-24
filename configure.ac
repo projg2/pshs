@@ -26,6 +26,34 @@ AC_ARG_ENABLE([netlink],
 		[Disable getting IP via netlink])])
 AS_IF([test x"$enable_netlink" != x"no"], [
 	AC_CHECK_LIB([netlink], [rtnl_wilddump_request])
+
+	AS_IF([test $ac_cv_lib_netlink_rtnl_wilddump_request = yes], [
+		AC_CACHE_CHECK([for 3-argument rtnl_dump_filter()],
+				[my_cv_have_rtnl_dump_filter_3arg],
+		[
+			AC_COMPILE_IFELSE(
+			[
+				AC_LANG_PROGRAM([
+#include <stdio.h>
+#include <unistd.h>
+#include <libnetlink.h>
+					],
+					[rtnl_dump_filter(0, 0, 0)])
+			],
+			[
+				my_cv_have_rtnl_dump_filter_3arg=yes
+			],
+			[
+				my_cv_have_rtnl_dump_filter_3arg=no
+			])
+		])
+
+		AS_IF([test $my_cv_have_rtnl_dump_filter_3arg = yes],
+		[
+			AC_DEFINE([HAVE_RTNL_DUMP_FILTER_3ARG], [1],
+				[Define if your rtnl_dump_filter() takes three arguments])
+		])
+	])
 ])
 
 AC_ARG_ENABLE([upnp],

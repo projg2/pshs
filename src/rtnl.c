@@ -104,7 +104,11 @@ const char *get_rtnl_external_ip(void) {
 	}
 
 	if (rtnl_wilddump_request(&rth, AF_INET, RTM_GETADDR) >= 0) {
+#ifdef HAVE_RTNL_DUMP_FILTER_3ARG
+		if (rtnl_dump_filter(&rth, store_addr, &out) < 0)
+#else
 		if (rtnl_dump_filter(&rth, store_addr, &out, NULL, NULL) < 0)
+#endif
 			fprintf(stderr, "rtnl_dump_filter() failed\n");
 	} else
 		fprintf(stderr, "rtnl_wilddump_request() failed: %s\n", strerror(errno));
