@@ -35,7 +35,7 @@ AS_IF([test x"$enable_netlink" != x"no"], [
 			[
 				AC_LANG_PROGRAM([
 #include <stdio.h>
-#include <unistd.h>
+#include <sys/socket.h>
 #include <libnetlink.h>
 					],
 					[rtnl_dump_filter(0, 0, 0)])
