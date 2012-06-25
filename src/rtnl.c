@@ -98,7 +98,7 @@ static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *da
 const char *get_rtnl_external_ip(void) {
 #ifdef HAVE_LIBNETLINK
 	struct rtnl_handle rth;
-	struct addr_search_data out = { NULL };
+	struct addr_search_data out = { NULL, 0, 0 };
 
 	if (rtnl_open(&rth, 0) < 0) {
 		fprintf(stderr, "rtnl_open() failed\n");
