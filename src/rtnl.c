@@ -23,10 +23,17 @@
 #include "network.h"
 
 #ifdef HAVE_LIBNETLINK
+enum is_local { /* most preferred first */
+	ISLOCAL_NO, /* global address */
+	ISLOCAL_NET, /* address reserved for local network */
+	ISLOCAL_APIPA, /* automatic address assignment */
+	ISLOCAL_HOST /* localhost address */
+};
+
 struct addr_search_data {
 	const char *addr;
 	int scope;
-	int islocal;
+	enum is_local islocal;
 };
 
 /**
@@ -56,12 +63,7 @@ static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *da
 		/* using char[4] allows us to ignore endianness */
 		unsigned char *binaddr = (void*) &(in->sin_addr.s_addr);
 
-		enum { /* most preferred first */
-			ISLOCAL_NO, /* global address */
-			ISLOCAL_NET, /* address reserved for local network */
-			ISLOCAL_APIPA, /* automatic address assignment */
-			ISLOCAL_HOST /* localhost address */
-		} islocal = ISLOCAL_NO;
+		enum is_local islocal = ISLOCAL_NO;
 
 		if (binaddr[0] == 127) /* localhost */
 			islocal = ISLOCAL_HOST;
