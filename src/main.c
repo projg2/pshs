@@ -31,13 +31,15 @@
  *
  * Handle SIGTERM or a similar signal -- terminate the main loop.
  */
-static void term_handler(evutil_socket_t fd, short what, void *data) {
-	struct event_base *evb = data;
+static void term_handler(evutil_socket_t fd, short what, void* data)
+{
+	struct event_base* evb = data;
 
 	event_base_loopbreak(evb);
 }
 
-const struct option opts[] = {
+const struct option opts[] =
+{
 	{ "help", no_argument, NULL, 'h' },
 	{ "version", no_argument, NULL, 'V' },
 
@@ -61,36 +63,40 @@ const char opt_help[] =
 "    --bind IP, -b IP     bind the server to IP address\n"
 "    --port N, -p N       set port to listen on (default: random)\n";
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
 	/* temporary variables */
 	int opt, i;
-	char *tmp;
+	char* tmp;
 
 	/* default config */
-	const char *bindip = "0.0.0.0";
+	const char* bindip = "0.0.0.0";
 	unsigned int port = 0;
 	int upnp = 1;
 
 	/* main variables */
-	struct event_base *evb;
-	struct evhttp *http;
+	struct event_base* evb;
+	struct evhttp* http;
 
-	struct event *sigevents[5];
+	struct event* sigevents[5];
 	const int sigs[5] = { SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2 };
 
-	const char *extip;
+	const char* extip;
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt_long(argc, argv, "hVb:p:U", opts, NULL)) != -1) {
-		switch (opt) {
+	while ((opt = getopt_long(argc, argv, "hVb:p:U", opts, NULL)) != -1)
+	{
+		switch (opt)
+		{
 			case 'b':
 				bindip = optarg;
 				break;
 			case 'p':
 				port = strtol(optarg, &tmp, 0);
 				/* port needs to be uint16 */
-				if (*tmp || !port || port >= 0xffff) {
+				if (*tmp || !port || port >= 0xffff)
+				{
 					fprintf(stderr, "Invalid port number: %s\n", optarg);
 					return 1;
 				}
@@ -108,24 +114,28 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* no files supplied */
-	if (argc == optind) {
+	if (argc == optind)
+	{
 		fprintf(stderr, opt_help, argv[0]);
 		return 1;
 	}
 
 	/* Remove ./ prefixes from filenames, they're known to cause trouble. */
-	for (i = optind; i < argc; i++) {
+	for (i = optind; i < argc; i++)
+	{
 		if (argv[i][0] == '.' && argv[i][1] == '/')
 			argv[i] += 2;
 	}
 
 	evb = event_base_new();
-	if (!evb) {
+	if (!evb)
+	{
 		fprintf(stderr, "event_base_new() failed.\n");
 		return 1;
 	}
 	http = evhttp_new(evb);
-	if (!http) {
+	if (!http)
+	{
 		fprintf(stderr, "evhttp_new() failed.\n");
 		return 1;
 	}
@@ -137,14 +147,16 @@ int main(int argc, char *argv[]) {
 	evhttp_set_cb(http, "/", handle_index, &argv[optind]);
 
 	/* if no port was provided, choose a nice random value */
-	if (!port) {
+	if (!port)
+	{
 		srandom(time(NULL));
 		/* generate a random port between 0x400 and 0x7fff
 		 * e.g. above the privileged ports but below outgoing */
 		port = random() % 0x7bff + 0x400;
 	}
 
-	if (evhttp_bind_socket(http, bindip, port)) {
+	if (evhttp_bind_socket(http, bindip, port))
+	{
 		fprintf(stderr, "evhttp_bind_socket(%s, %d) failed.\n",
 				bindip, port);
 		return 1;
@@ -168,7 +180,8 @@ int main(int argc, char *argv[]) {
 				argc - optind == 1 ? argv[optind] : "");
 
 	/* init signal handlers */
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 5; i++)
+	{
 		sigevents[i] = evsignal_new(evb, sigs[i], term_handler, evb);
 		if (!sigevents[i])
 			fprintf(stderr, "evsignal_new(%d) failed.\n", sigs[i]);
@@ -184,7 +197,8 @@ int main(int argc, char *argv[]) {
 	destroy_content_type();
 
 	/* clean up signal handlers */
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 5; i++)
+	{
 		if (sigevents[i])
 			event_free(sigevents[i]);
 	}

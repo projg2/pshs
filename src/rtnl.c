@@ -30,8 +30,9 @@ enum is_local { /* most preferred first */
 	ISLOCAL_HOST /* localhost address */
 };
 
-struct addr_search_data {
-	const char *addr;
+struct addr_search_data
+{
+	const char* addr;
 	int scope;
 	enum is_local islocal;
 };
@@ -47,21 +48,23 @@ struct addr_search_data {
  *
  * Returns: 0
  */
-static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *data) {
-	struct addr_search_data *out = data;
-	struct ifaddrmsg *addr = NLMSG_DATA(n);
-	struct rtattr * rta_tb[IFA_MAX+1];
+static int store_addr(const struct sockaddr_nl* sa, struct nlmsghdr* n, void* data)
+{
+	struct addr_search_data* out = data;
+	struct ifaddrmsg* addr = NLMSG_DATA(n);
+	struct rtattr*  rta_tb[IFA_MAX+1];
 
 	/* Based heavily on iproute2,
 	 * IOW: I'm not sure that I want to know what happens here. */
 	parse_rtattr(rta_tb, IFA_MAX, IFA_RTA(addr),
 			n->nlmsg_len - NLMSG_LENGTH(sizeof(*addr)));
 
-	if (addr->ifa_family == AF_INET && rta_tb[IFA_LOCAL]) {
+	if (addr->ifa_family == AF_INET && rta_tb[IFA_LOCAL])
+	{
 		/* Get the actual IP address */
-		struct sockaddr_in *in = (void*) rta_tb[IFA_LOCAL];
+		struct sockaddr_in* in = (void*) rta_tb[IFA_LOCAL];
 		/* using char[4] allows us to ignore endianness */
-		unsigned char *binaddr = (void*) &(in->sin_addr.s_addr);
+		unsigned char* binaddr = (void*) &(in->sin_addr.s_addr);
 
 		enum is_local islocal = ISLOCAL_NO;
 
@@ -73,11 +76,12 @@ static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *da
 			islocal = ISLOCAL_NET;
 		else if (binaddr[0] == 169 && binaddr[1] == 254)
 			islocal = ISLOCAL_APIPA;
-		else if (binaddr[0] == 172 && binaddr[1] >= 16 && binaddr[1] < 32) 
+		else if (binaddr[0] == 172 && binaddr[1] >= 16 && binaddr[1] < 32)
 			islocal = ISLOCAL_NET;
 
 		/* prefer global scope, and global addresses */
-		if (!out->addr || addr->ifa_scope < out->scope || islocal < out->islocal) {
+		if (!out->addr || addr->ifa_scope < out->scope || islocal < out->islocal)
+		{
 			out->addr = inet_ntoa(in->sin_addr);
 			out->scope = addr->ifa_scope;
 			out->islocal = islocal;
@@ -95,17 +99,20 @@ static int store_addr(const struct sockaddr_nl *sa, struct nlmsghdr *n, void *da
  *
  * Returns: best IP address found on the system, in a static buffer
  */
-const char *get_rtnl_external_ip(void) {
+const char* get_rtnl_external_ip(void)
+{
 #ifdef HAVE_LIBNETLINK
 	struct rtnl_handle rth;
 	struct addr_search_data out = { NULL, 0, 0 };
 
-	if (rtnl_open(&rth, 0) < 0) {
+	if (rtnl_open(&rth, 0) < 0)
+	{
 		fprintf(stderr, "rtnl_open() failed\n");
 		return NULL;
 	}
 
-	if (rtnl_wilddump_request(&rth, AF_INET, RTM_GETADDR) >= 0) {
+	if (rtnl_wilddump_request(&rth, AF_INET, RTM_GETADDR) >= 0)
+	{
 #ifdef HAVE_RTNL_DUMP_FILTER_3ARG
 		if (rtnl_dump_filter(&rth, store_addr, &out) < 0)
 #else

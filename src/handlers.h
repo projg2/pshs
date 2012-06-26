@@ -9,9 +9,9 @@
 
 #include <event2/http.h>
 
-void init_charset(const char *charset);
+void init_charset(const char* charset);
 
-void handle_file(struct evhttp_request *req, void *data);
-void handle_index(struct evhttp_request *req, void *data);
+void handle_file(struct evhttp_request* req, void* data);
+void handle_index(struct evhttp_request* req, void* data);
 
 #endif /*_PSHS_HANDLERS_H*/

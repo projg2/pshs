@@ -9,6 +9,6 @@
 
 #include <event2/buffer.h>
 
-void generate_index(struct evbuffer *buf, const char **files);
+void generate_index(struct evbuffer* buf, const char** files);
 
 #endif /*_PSHS_INDEX_H*/

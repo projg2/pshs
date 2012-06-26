@@ -10,6 +10,6 @@
 void init_content_type(void);
 void destroy_content_type(void);
 
-const char *guess_content_type(int fd);
+const char* guess_content_type(int fd);
 
 #endif /*_PSHS_CONTENT_TYPE_H*/

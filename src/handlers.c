@@ -43,9 +43,11 @@ char ct_buf[80];
  *
  * Set the new charset (file name encoding).
  */
-void init_charset(const char *charset) {
+void init_charset(const char* charset)
+{
 	strcpy(ct_buf, "text/html"); /* 9b */
-	if (charset && strlen(charset) < sizeof(ct_buf) - 20) {
+	if (charset && strlen(charset) < sizeof(ct_buf) - 20)
+	{
 		strcpy(&ct_buf[9], "; charset=");
 		strcpy(&ct_buf[19], charset);
 	}
@@ -60,8 +62,10 @@ void init_charset(const char *charset) {
  *
  * Returns: 1 if it is, 0 otherwise
  */
-static int has_file(const char *path, const char* const *served) {
-	for (; *served; served++) {
+static int has_file(const char* path, const char* const* served)
+{
+	for (; *served; served++)
+	{
 		if (!strcmp(path, *served))
 			return 1;
 	}
@@ -75,11 +79,12 @@ static int has_file(const char *path, const char* const *served) {
  *
  * Log the request source and the requested path to stdout.
  */
-static void print_req(struct evhttp_request *req) {
-	const char *uri = evhttp_request_get_uri(req);
-	struct evhttp_connection *conn = evhttp_request_get_connection(req);
+static void print_req(struct evhttp_request* req)
+{
+	const char* uri = evhttp_request_get_uri(req);
+	struct evhttp_connection* conn = evhttp_request_get_connection(req);
 
-	char *addr;
+	char* addr;
 	ev_uint16_t port;
 
 	assert(conn);
@@ -98,9 +103,10 @@ static void print_req(struct evhttp_request *req) {
  * If file is not served, 404 is sent back. If file is unreadable somehow, 500
  * is sent instead.
  */
-void handle_file(struct evhttp_request *req, void *data) {
-	const char **argv = data;
-	const char *vpath = evhttp_request_get_uri(req);
+void handle_file(struct evhttp_request* req, void* data)
+{
+	const char** argv = data;
+	const char* vpath = evhttp_request_get_uri(req);
 
 	/* Chop the leading slash. */
 	assert(vpath[0] == '/');
@@ -110,12 +116,14 @@ void handle_file(struct evhttp_request *req, void *data) {
 
 	if (!has_file(vpath, argv))
 		evhttp_send_error(req, 404, "Not Found");
-	else {
+	else
+	{
 		int fd = open(vpath, O_RDONLY);
 
 		if (fd == -1)
 			fprintf(stderr, "open(%s) failed: %s\n", vpath, strerror(errno));
-		else {
+		else
+		{
 			struct stat st;
 
 			/* we need to have a regular file here,
@@ -124,12 +132,13 @@ void handle_file(struct evhttp_request *req, void *data) {
 				fprintf(stderr, "fstat(%s) failed: %s\n", vpath, strerror(errno));
 			else if (!S_ISREG(st.st_mode))
 				fprintf(stderr, "fstat(%s) says it is not a regular file\n", vpath);
-			else {
-				struct evbuffer *buf = evbuffer_new();
-				struct evkeyvalq *inhead = evhttp_request_get_input_headers(req);
-				struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
+			else
+			{
+				struct evbuffer* buf = evbuffer_new();
+				struct evkeyvalq* inhead = evhttp_request_get_input_headers(req);
+				struct evkeyvalq* headers = evhttp_request_get_output_headers(req);
 
-				const char *range;
+				const char* range;
 				intmax_t first = 0, last = -1;
 				ev_off_t size = st.st_size;
 
@@ -137,12 +146,14 @@ void handle_file(struct evhttp_request *req, void *data) {
 				assert(headers);
 
 				range = evhttp_find_header(inhead, "Range");
-				if (range) {
+				if (range)
+				{
 					/* We support only single byte range,
 					 * so fail on ',' or invalid bytes=%d-%d */
 					if (strchr(range, ',') || sscanf(range,
 								"bytes = %" SCNdMAX " - %" SCNdMAX,
-								&first, &last) < 1) {
+								&first, &last) < 1)
+					{
 						evhttp_send_error(req, 501, "Not Implemented");
 						close(fd);
 						return;
@@ -154,7 +165,8 @@ void handle_file(struct evhttp_request *req, void *data) {
 				if (last < 0)
 					last += size;
 
-				if (first > last) {
+				if (first > last)
+				{
 					evhttp_send_error(req, 416, "Requested Range Not Satisfiable");
 					close(fd);
 					return;
@@ -168,7 +180,8 @@ void handle_file(struct evhttp_request *req, void *data) {
 				/* Send the file. */
 				evbuffer_set_flags(buf, EVBUFFER_FLAG_DRAINS_TO_FD);
 				evbuffer_add_file(buf, fd, first, last - first + 1);
-				if (range) {
+				if (range)
+				{
 					char lenbuf[96]; /* XXX */
 					sprintf(lenbuf, "bytes %" PRIdMAX "-%" PRIdMAX
 							"/%" PRIdMAX, first, last, (intmax_t) size);
@@ -196,10 +209,11 @@ void handle_file(struct evhttp_request *req, void *data) {
  *
  * Handle index (/) request. Send back the HTML filelist.
  */
-void handle_index(struct evhttp_request *req, void *data) {
-	const char **argv = data;
-	struct evbuffer *buf = evbuffer_new();
-	struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
+void handle_index(struct evhttp_request* req, void* data)
+{
+	const char** argv = data;
+	struct evbuffer* buf = evbuffer_new();
+	struct evkeyvalq* headers = evhttp_request_get_output_headers(req);
 
 	print_req(req);
 

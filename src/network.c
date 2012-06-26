@@ -46,10 +46,12 @@ static int upnp_enabled;
  *
  * Returns: pointer to ASCII repr of 'best' IP address, or %NULL
  */
-const char *init_external_ip(unsigned int port, const char *bindip, int use_upnp) {
+const char* init_external_ip(unsigned int port, const char* bindip, int use_upnp)
+{
 #ifdef HAVE_LIBMINIUPNPC
 	/* use UPnP only if user wants to */
-	if (use_upnp) {
+	if (use_upnp)
+	{
 #ifdef LIBMINIUPNPC_SO_8
 		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0, 0, NULL);
 #else
@@ -63,7 +65,8 @@ const char *init_external_ip(unsigned int port, const char *bindip, int use_upnp
 		/* ret=1 means we've got IGD,
 		 * ret>1 means we've got something else, so we need to clean up */
 		upnp_enabled = (ret == 1);
-		if (upnp_enabled) {
+		if (upnp_enabled)
+		{
 			/* UPnP likes ASCII */
 			char strport[6];
 			sprintf(strport, "%d", port);
@@ -83,11 +86,13 @@ const char *init_external_ip(unsigned int port, const char *bindip, int use_upnp
 					NULL,
 #endif
 					NULL);
-			if (ret != UPNPCOMMAND_SUCCESS) {
+			if (ret != UPNPCOMMAND_SUCCESS)
+			{
 				fprintf(stderr, "UPNP_AddPortMapping() failed: %s\n", strupnperror(ret));
 				upnp_enabled = 0;
 				FreeUPNPUrls(&(upnp_urls));
-			} else {
+			} else
+			{
 				static char extip[16];
 
 				/* And then get external IP. */
@@ -117,9 +122,11 @@ const char *init_external_ip(unsigned int port, const char *bindip, int use_upnp
  * Cleanup after init_external_ip(). If UPnP was used, remove the port
  * forwarding established then.
  */
-void destroy_external_ip(unsigned int port) {
+void destroy_external_ip(unsigned int port)
+{
 #ifdef HAVE_LIBMINIUPNPC
-	if (upnp_enabled) {
+	if (upnp_enabled)
+	{
 		int ret;
 		char strport[6];
 		sprintf(strport, "%d", port);
