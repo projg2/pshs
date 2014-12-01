@@ -57,6 +57,15 @@ AS_IF([test x"$enable_netlink" != x"no"], [
 	])
 ])
 
+AC_ARG_ENABLE([qrencode],
+	[AS_HELP_STRING([--disable-qrencode],
+		[Disable use of qrencode to print URL qrcodes])])
+AS_IF([test x"$enable_qrencode" != x"no"], [
+	PKG_CHECK_MODULES([QRENCODE], [libqrencode], [
+		AC_DEFINE([HAVE_LIBQRENCODE], [1], [define if you have libqrencode])
+	])
+])
+
 AC_ARG_ENABLE([upnp],
 	[AS_HELP_STRING([--disable-upnp],
 		[Disable use of UPnP (via libminiupnpc)])])

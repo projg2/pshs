@@ -4,10 +4,11 @@ bin_PROGRAMS = pshs
 
 pshs_SOURCES = src/main.c src/content-type.c src/content-type.h \
 	src/index.c src/index.h src/handlers.c src/handlers.h \
-	src/network.c src/network.h src/rtnl.c
+	src/network.c src/network.h src/rtnl.c src/qrencode.c \
+	src/qrencode.h
 
-AM_CPPFLAGS = $(LIBEVENT_CFLAGS)
-LDADD = $(LIBEVENT_LIBS)
+AM_CPPFLAGS = $(LIBEVENT_CFLAGS) $(QRENCODE_CFLAGS)
+LDADD = $(LIBEVENT_LIBS) $(QRENCODE_LIBS)
 
 EXTRA_DIST = NEWS
 NEWS: configure.ac Makefile.am

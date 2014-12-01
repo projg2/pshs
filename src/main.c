@@ -22,6 +22,7 @@
 #include "content-type.h"
 #include "handlers.h"
 #include "network.h"
+#include "qrencode.h"
 
 /**
  * term_handler
@@ -176,8 +177,23 @@ int main(int argc, char* argv[])
 	fprintf(stderr, "Ready to share %d files.\n", argc - optind);
 	fprintf(stderr, "Bound to %s:%d.\n", bindip, port);
 	if (extip)
-		fprintf(stderr, "Server reachable at: http://%s:%d/%s\n", extip, port,
-				argc - optind == 1 ? argv[optind] : "");
+	{
+		int bytes_written;
+		char* buf;
+
+		fputs("Server reachable at: ", stderr);
+		bytes_written = fprintf(stderr, "http://%s:%d/%s\n",
+				extip, port, argc - optind == 1 ? argv[optind] : "");
+
+		buf = malloc(bytes_written); /* has + 1 for NUL thanks to \n */
+		if (buf)
+		{
+			sprintf(buf, "http://%s:%d/%s",
+					extip, port, argc - optind == 1 ? argv[optind] : "");
+			print_qrcode(buf);
+			free(buf);
+		}
+	}
 
 	/* init signal handlers */
 	for (i = 0; i < 5; i++)
