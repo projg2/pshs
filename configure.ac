@@ -2,7 +2,7 @@ AC_PREREQ([2.60])
 AC_INIT([pshs], [0.2.1])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([1.6 foreign dist-bzip2 -Wall])
+AM_INIT_AUTOMAKE([1.9 foreign dist-bzip2 subdir-objects -Wall])
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 
