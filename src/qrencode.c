@@ -6,14 +6,19 @@
 #include "config.h"
 
 #include <stdio.h>
-#include <qrencode.h>
+#ifdef HAVE_LIBQRENCODE
+#	include <qrencode.h>
+#endif
 
 #include "qrencode.h"
 
+#ifdef HAVE_LIBQRENCODE
 static const int qr_margin = 3;
+#endif
 
 void print_qrcode(const char* data)
 {
+#ifdef HAVE_LIBQRENCODE
 	QRcode* qr;
 	int x, y;
 
@@ -71,4 +76,5 @@ void print_qrcode(const char* data)
 	}
 
 	QRcode_free(qr);
+#endif
 }
