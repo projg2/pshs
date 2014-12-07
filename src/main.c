@@ -217,6 +217,11 @@ int main(int argc, char* argv[])
 			event_add(sigevents[i], NULL);
 	}
 
+	/* ignore SIGPIPE in case of interrupted connection */
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+		fputs("warning: unable to override SIGPIPE, may terminate"
+				"on interrupted connections.", stderr);
+
 	/* run the loop */
 	event_base_dispatch(evb);
 
