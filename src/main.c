@@ -26,7 +26,7 @@
 
 /**
  * term_handler
- * @fd: (unused)
+ * @fd: the signal no
  * @what: (unused)
  * @data: the event base
  *
@@ -35,6 +35,18 @@
 static void term_handler(evutil_socket_t fd, short what, void* data)
 {
 	struct event_base* evb = data;
+	const char* sig = "unknown";
+
+	switch (fd)
+	{
+		case SIGINT: sig = "SIGINT"; break;
+		case SIGTERM: sig = "SIGTERM"; break;
+		case SIGHUP: sig = "SIGHUP"; break;
+		case SIGUSR1: sig = "SIGUSR1"; break;
+		case SIGUSR2: sig = "SIGUSR2"; break;
+	}
+
+	fprintf(stderr, "Terminating due to signal %s.\n", sig);
 
 	event_base_loopbreak(evb);
 }
