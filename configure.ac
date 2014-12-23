@@ -66,6 +66,16 @@ AS_IF([test x"$enable_qrencode" != x"no"], [
 	])
 ])
 
+AC_ARG_ENABLE([ssl],
+	[AS_HELP_STRING([--disable-ssl],
+		[Disable SSL/TLS support])])
+AS_IF([test x"$enable_ssl" != x"no"], [
+	# libevent 2.1 required because of evhttp_set_bevcb()
+	PKG_CHECK_MODULES([LIBSSL], [libssl libcrypto libevent >= 2.1 libevent_openssl], [
+		AC_DEFINE([HAVE_LIBSSL], [1], [define if you have libssl])
+	])
+])
+
 AC_ARG_ENABLE([upnp],
 	[AS_HELP_STRING([--disable-upnp],
 		[Disable use of UPnP (via libminiupnpc)])])

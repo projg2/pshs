@@ -178,7 +178,9 @@ void handle_file(struct evhttp_request* req, void* data)
 					fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
 
 				/* Send the file. */
+#if 0 /* breaks ssl support */
 				evbuffer_set_flags(buf, EVBUFFER_FLAG_DRAINS_TO_FD);
+#endif
 				evbuffer_add_file(buf, fd, first, last - first + 1);
 				if (range)
 				{

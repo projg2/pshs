@@ -58,6 +58,7 @@ const struct option opts[] =
 
 	{ "bind", required_argument, NULL, 'b' },
 	{ "port", required_argument, NULL, 'p' },
+	{ "ssl", no_argument, NULL, 's' },
 	{ "no-upnp", no_argument, NULL, 'U' },
 
 	{ 0, 0, 0, 0 }
@@ -73,6 +74,9 @@ const char opt_help[] =
 #ifdef HAVE_LIBMINIUPNPC
 "    --no-upnp, -U        disable port redirection using UPnP\n"
 #endif
+#ifdef HAVE_LIBSSL
+"    --ssl, -s            enable SSL/TLS socket\n"
+#endif
 "    --bind IP, -b IP     bind the server to IP address\n"
 "    --port N, -p N       set port to listen on (default: random)\n";
 
@@ -85,6 +89,7 @@ int main(int argc, char* argv[])
 	/* default config */
 	const char* bindip = "0.0.0.0";
 	unsigned int port = 0;
+	int ssl = 0;
 	int upnp = 1;
 
 	/* main variables */
@@ -98,7 +103,7 @@ int main(int argc, char* argv[])
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt_long(argc, argv, "hVb:p:U", opts, NULL)) != -1)
+	while ((opt = getopt_long(argc, argv, "hVb:p:sU", opts, NULL)) != -1)
 	{
 		switch (opt)
 		{
@@ -113,6 +118,9 @@ int main(int argc, char* argv[])
 					fprintf(stderr, "Invalid port number: %s\n", optarg);
 					return 1;
 				}
+				break;
+			case 's':
+				ssl = 1;
 				break;
 			case 'U':
 				upnp = 0;
@@ -140,6 +148,8 @@ int main(int argc, char* argv[])
 			argv[i] += 2;
 	}
 
+	srandom(time(NULL));
+
 	evb = event_base_new();
 	if (!evb)
 	{
@@ -162,7 +172,6 @@ int main(int argc, char* argv[])
 	/* if no port was provided, choose a nice random value */
 	if (!port)
 	{
-		srandom(time(NULL));
 		/* generate a random port between 0x400 and 0x7fff
 		 * e.g. above the privileged ports but below outgoing */
 		port = random() % 0x7bff + 0x400;
@@ -186,6 +195,12 @@ int main(int argc, char* argv[])
 	init_content_type();
 	extip = init_external_ip(port, bindip, upnp);
 
+	if (ssl)
+	{
+		if (!init_ssl(http, extip))
+			return 1;
+	}
+
 	fprintf(stderr, "Ready to share %d files.\n", argc - optind);
 	fprintf(stderr, "Bound to %s:%d.\n", bindip, port);
 	if (extip)
@@ -194,14 +209,16 @@ int main(int argc, char* argv[])
 		char* buf;
 
 		fputs("Server reachable at: ", stderr);
-		bytes_written = fprintf(stderr, "http://%s:%d/%s\n",
-				extip, port, argc - optind == 1 ? argv[optind] : "");
+		bytes_written = fprintf(stderr, "http%s://%s:%d/%s\n",
+				ssl ? "s" : "", extip, port,
+				argc - optind == 1 ? argv[optind] : "");
 
 		buf = malloc(bytes_written); /* has + 1 for NUL thanks to \n */
 		if (buf)
 		{
-			sprintf(buf, "http://%s:%d/%s",
-					extip, port, argc - optind == 1 ? argv[optind] : "");
+			sprintf(buf, "http%s://%s:%d/%s",
+				ssl ? "s" : "", extip, port,
+				argc - optind == 1 ? argv[optind] : "");
 			print_qrcode(buf);
 			free(buf);
 		}
@@ -226,6 +243,7 @@ int main(int argc, char* argv[])
 	event_base_dispatch(evb);
 
 	/* clean up external modules */
+	destroy_ssl();
 	destroy_external_ip(port);
 	destroy_content_type();
 
