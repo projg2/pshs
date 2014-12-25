@@ -107,6 +107,7 @@ void handle_file(struct evhttp_request* req, void* data)
 {
 	const char** argv = data;
 	const char* vpath = evhttp_request_get_uri(req);
+	char* dpath;
 
 	/* Chop the leading slash. */
 	assert(vpath[0] == '/');
@@ -114,14 +115,22 @@ void handle_file(struct evhttp_request* req, void* data)
 
 	print_req(req);
 
-	if (!has_file(vpath, argv))
+	dpath = evhttp_decode_uri(vpath);
+	if (!dpath)
+	{
+		fprintf(stderr, "Unable to decode URI: %s\n", vpath);
+		evhttp_send_error(req, 500, "Internal Server Error");
+		return;
+	}
+
+	if (!has_file(dpath, argv))
 		evhttp_send_error(req, 404, "Not Found");
 	else
 	{
-		int fd = open(vpath, O_RDONLY);
+		int fd = open(dpath, O_RDONLY);
 
 		if (fd == -1)
-			fprintf(stderr, "open(%s) failed: %s\n", vpath, strerror(errno));
+			fprintf(stderr, "open(%s) failed: %s\n", dpath, strerror(errno));
 		else
 		{
 			struct stat st;
@@ -129,9 +138,9 @@ void handle_file(struct evhttp_request* req, void* data)
 			/* we need to have a regular file here,
 			 * with static Content-Length */
 			if (fstat(fd, &st))
-				fprintf(stderr, "fstat(%s) failed: %s\n", vpath, strerror(errno));
+				fprintf(stderr, "fstat(%s) failed: %s\n", dpath, strerror(errno));
 			else if (!S_ISREG(st.st_mode))
-				fprintf(stderr, "fstat(%s) says it is not a regular file\n", vpath);
+				fprintf(stderr, "fstat(%s) says it is not a regular file\n", dpath);
 			else
 			{
 				struct evbuffer* buf = evbuffer_new();
@@ -156,6 +165,7 @@ void handle_file(struct evhttp_request* req, void* data)
 					{
 						evhttp_send_error(req, 501, "Not Implemented");
 						close(fd);
+						free(dpath);
 						return;
 					}
 				}
@@ -169,6 +179,7 @@ void handle_file(struct evhttp_request* req, void* data)
 				{
 					evhttp_send_error(req, 416, "Requested Range Not Satisfiable");
 					close(fd);
+					free(dpath);
 					return;
 				}
 
@@ -195,6 +206,7 @@ void handle_file(struct evhttp_request* req, void* data)
 					evhttp_send_reply(req, 200, "OK", buf);
 
 				evbuffer_free(buf);
+				free(dpath);
 				return;
 			}
 
@@ -202,6 +214,8 @@ void handle_file(struct evhttp_request* req, void* data)
 		}
 		evhttp_send_error(req, 500, "Internal Server Error");
 	}
+
+	free(dpath);
 }
 
 /**
