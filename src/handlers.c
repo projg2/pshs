@@ -240,6 +240,7 @@ void handle_index(struct evhttp_request* req, void* data)
 	print_req(req);
 
 	assert(headers);
+	evhttp_add_header(headers, "Server", PACKAGE_NAME "/" PACKAGE_VERSION);
 	if (evhttp_add_header(headers, "Content-Type",
 				"text/html; charset=utf-8"))
 		fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
