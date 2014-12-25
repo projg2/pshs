@@ -185,8 +185,8 @@ void handle_file(struct evhttp_request* req, void* data)
 
 				/* Advertise range support */
 				evhttp_add_header(headers, "Accept-Ranges", "bytes");
-				/* Identify itself! */
-				evhttp_add_header(headers, "Server", PACKAGE_STRING);
+				/* Be proud! */
+				evhttp_add_header(headers, "Server", PACKAGE_NAME "/" PACKAGE_VERSION);
 
 				/* Good Content-Type is nice for users. */
 				if (evhttp_add_header(headers, "Content-Type",
