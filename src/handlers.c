@@ -175,7 +175,7 @@ void handle_file(struct evhttp_request* req, void* data)
 				if (last < 0)
 					last += size;
 
-				if (first > last)
+				if (range && first > last)
 				{
 					evhttp_send_error(req, 416, "Requested Range Not Satisfiable");
 					close(fd);
@@ -192,7 +192,8 @@ void handle_file(struct evhttp_request* req, void* data)
 #if 0 /* breaks ssl support */
 				evbuffer_set_flags(buf, EVBUFFER_FLAG_DRAINS_TO_FD);
 #endif
-				evbuffer_add_file(buf, fd, first, last - first + 1);
+				if (size != 0)
+					evbuffer_add_file(buf, fd, first, last - first + 1);
 				if (range)
 				{
 					char lenbuf[96]; /* XXX */
