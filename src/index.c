@@ -6,7 +6,10 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+
+#include <event2/http.h>
 
 #include "index.h"
 
@@ -38,7 +41,7 @@ const char tail[] =
 
 /* Building parts of a single link. */
 
-const char filenameprefix[] = "<li><a href='./";
+const char filenameprefix[] = "<li><a href='";
 const char filenamemidfix[] = "'>";
 const char filenamesuffix[] = "</a></li>";
 
@@ -55,16 +58,34 @@ void generate_index(struct evbuffer* buf, const char** files)
 
 	for (; *files; files++)
 	{
-		const int fnlen = strlen(*files);
+		char* urlenc;
+		char* htmlenc;
+
+		urlenc = evhttp_encode_uri(*files);
+		if (!urlenc)
+		{
+			fprintf(stderr, "urlencode failed for %s\n", *files);
+			continue;
+		}
+		htmlenc = evhttp_htmlescape(*files);
+		if (!htmlenc)
+		{
+			fprintf(stderr, "html-escape failed for %s\n", *files);
+			free(urlenc);
+			continue;
+		}
 
 		evbuffer_add_reference(buf, filenameprefix,
 				sizeof(filenameprefix)-1, NULL, NULL);
-		evbuffer_add_reference(buf, *files, fnlen, NULL, NULL);
+		evbuffer_add(buf, urlenc, strlen(urlenc));
 		evbuffer_add_reference(buf, filenamemidfix,
 				sizeof(filenamemidfix)-1, NULL, NULL);
-		evbuffer_add_reference(buf, *files, fnlen, NULL, NULL);
+		evbuffer_add(buf, htmlenc, strlen(htmlenc));
 		evbuffer_add_reference(buf, filenamesuffix,
 				sizeof(filenamesuffix)-1, NULL, NULL);
+
+		free(htmlenc);
+		free(urlenc);
 	}
 
 	evbuffer_add_reference(buf, tail, sizeof(tail)-1, NULL, NULL);

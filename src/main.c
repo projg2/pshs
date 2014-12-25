@@ -207,21 +207,32 @@ int main(int argc, char* argv[])
 	{
 		int bytes_written;
 		char* buf;
+		char* urlenc = 0;
+
+		if (argc - optind == 1)
+		{
+			urlenc = evhttp_encode_uri(argv[optind]);
+			if (!urlenc)
+				fprintf(stderr, "Warning: urlencode for %s failed\n", argv[optind]);
+		}
 
 		fputs("Server reachable at: ", stderr);
 		bytes_written = fprintf(stderr, "http%s://%s:%d/%s\n",
 				ssl ? "s" : "", extip, port,
-				argc - optind == 1 ? argv[optind] : "");
+				urlenc ? urlenc : "");
 
 		buf = malloc(bytes_written); /* has + 1 for NUL thanks to \n */
 		if (buf)
 		{
 			sprintf(buf, "http%s://%s:%d/%s",
 				ssl ? "s" : "", extip, port,
-				argc - optind == 1 ? argv[optind] : "");
+				urlenc ? urlenc : "");
 			print_qrcode(buf);
 			free(buf);
 		}
+
+		if (urlenc)
+			free(urlenc);
 	}
 
 	/* init signal handlers */
