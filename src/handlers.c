@@ -93,6 +93,23 @@ static void print_req(struct evhttp_request* req)
 }
 
 /**
+ * handle_close
+ * @conn: the connection
+ * @data: unused
+ *
+ * Handle the connection close event.
+ */
+void handle_close(struct evhttp_connection* conn, void* data)
+{
+	char* addr;
+	ev_uint16_t port;
+
+	assert(conn);
+	evhttp_connection_get_peer(conn, &addr, &port);
+	printf("[%s:%d] connection closed\n", addr, port);
+}
+
+/**
  * handle_file
  * @req: the request object
  * @data: served file list
@@ -108,6 +125,13 @@ void handle_file(struct evhttp_request* req, void* data)
 	const char** argv = data;
 	const char* vpath = evhttp_request_get_uri(req);
 	char* dpath;
+	struct evhttp_connection* conn = evhttp_request_get_connection(req);
+
+	assert(vpath);
+	assert(conn);
+
+	/* Report connection being closed. */
+	evhttp_connection_set_closecb(conn, handle_close, 0);
 
 	/* Chop the leading slash. */
 	assert(vpath[0] == '/');
