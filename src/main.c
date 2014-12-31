@@ -160,6 +160,7 @@ int main(int argc, char* argv[])
 	if (!http)
 	{
 		fprintf(stderr, "evhttp_new() failed.\n");
+		event_base_free(evb);
 		return 1;
 	}
 	/* we're just a small download server, GET & HEAD should handle it all */
@@ -181,6 +182,8 @@ int main(int argc, char* argv[])
 	{
 		fprintf(stderr, "evhttp_bind_socket(%s, %d) failed.\n",
 				bindip, port);
+		evhttp_free(http);
+		event_base_free(evb);
 		return 1;
 	}
 
@@ -198,7 +201,13 @@ int main(int argc, char* argv[])
 	if (ssl)
 	{
 		if (!init_ssl(http, extip))
+		{
+			destroy_external_ip(port);
+			destroy_content_type();
+			evhttp_free(http);
+			event_base_free(evb);
 			return 1;
+		}
 	}
 
 	fprintf(stderr, "Ready to share %d files.\n", argc - optind);
