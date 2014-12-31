@@ -9,6 +9,13 @@
 
 #include <event2/http.h>
 
+struct callback_data
+{
+	const char* prefix;
+	size_t prefix_len;
+	char* const* files;
+};
+
 void init_charset(const char* charset);
 
 void handle_file(struct evhttp_request* req, void* data);

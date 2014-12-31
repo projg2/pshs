@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <signal.h>
 
@@ -78,7 +79,8 @@ const char opt_help[] =
 "    --ssl, -s            enable SSL/TLS socket\n"
 #endif
 "    --bind IP, -b IP     bind the server to IP address\n"
-"    --port N, -p N       set port to listen on (default: random)\n";
+"    --port N, -p N       set port to listen on (default: random)\n"
+"    --prefix PFX, -P PFX require all URLs to start with the prefix PFX\n";
 
 int main(int argc, char* argv[])
 {
@@ -87,6 +89,7 @@ int main(int argc, char* argv[])
 	char* tmp;
 
 	/* default config */
+	const char* prefix = 0;
 	const char* bindip = "0.0.0.0";
 	unsigned int port = 0;
 	int ssl = 0;
@@ -101,9 +104,11 @@ int main(int argc, char* argv[])
 
 	const char* extip;
 
+	struct callback_data cb_data;
+
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt_long(argc, argv, "hVb:p:sU", opts, NULL)) != -1)
+	while ((opt = getopt_long(argc, argv, "hVb:p:P:sU", opts, NULL)) != -1)
 	{
 		switch (opt)
 		{
@@ -118,6 +123,9 @@ int main(int argc, char* argv[])
 					fprintf(stderr, "Invalid port number: %s\n", optarg);
 					return 1;
 				}
+				break;
+			case 'P':
+				prefix = optarg;
 				break;
 			case 's':
 				ssl = 1;
@@ -150,6 +158,11 @@ int main(int argc, char* argv[])
 
 	srandom(time(NULL));
 
+	cb_data.prefix = prefix;
+	if (prefix)
+		cb_data.prefix_len = strlen(prefix);
+	cb_data.files = &argv[optind];
+
 	evb = event_base_new();
 	if (!evb)
 	{
@@ -166,9 +179,31 @@ int main(int argc, char* argv[])
 	/* we're just a small download server, GET & HEAD should handle it all */
 	evhttp_set_allowed_methods(http, EVHTTP_REQ_GET | EVHTTP_REQ_HEAD);
 	/* generic callback - file download */
-	evhttp_set_gencb(http, handle_file, &argv[optind]);
+	evhttp_set_gencb(http, handle_file, &cb_data);
 	/* index callback */
-	evhttp_set_cb(http, "/", handle_index, &argv[optind]);
+	if (!prefix)
+		evhttp_set_cb(http, "/", handle_index, &argv[optind]);
+	else
+	{
+		char* index_uri = malloc(cb_data.prefix_len + 3); /* 2x/ + \0 */
+
+		if (!index_uri)
+		{
+			fprintf(stderr, "malloc() for index_uri failed.\n");
+			evhttp_free(http);
+			event_base_free(evb);
+			return 1;
+		}
+
+		index_uri[0] = '/';
+		strcpy(&index_uri[1], prefix);
+		index_uri[cb_data.prefix_len + 1] = '/';
+		index_uri[cb_data.prefix_len + 2] = 0;
+
+		evhttp_set_cb(http, index_uri, handle_index, &cb_data);
+
+		free(index_uri);
+	}
 
 	/* if no port was provided, choose a nice random value */
 	if (!port)
@@ -226,15 +261,19 @@ int main(int argc, char* argv[])
 		}
 
 		fputs("Server reachable at: ", stderr);
-		bytes_written = fprintf(stderr, "http%s://%s:%d/%s\n",
+		bytes_written = fprintf(stderr, "http%s://%s:%d/%s%s%s\n",
 				ssl ? "s" : "", extip, port,
+				prefix ? prefix : "",
+				prefix ? "/" : "",
 				urlenc ? urlenc : "");
 
 		buf = malloc(bytes_written); /* has + 1 for NUL thanks to \n */
 		if (buf)
 		{
-			sprintf(buf, "http%s://%s:%d/%s",
+			sprintf(buf, "http%s://%s:%d/%s%s%s",
 				ssl ? "s" : "", extip, port,
+				prefix ? prefix : "",
+				prefix ? "/" : "",
 				urlenc ? urlenc : "");
 			print_qrcode(buf);
 			free(buf);

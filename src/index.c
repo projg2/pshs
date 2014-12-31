@@ -52,7 +52,7 @@ const char filenamesuffix[] = "</a></li>";
  *
  * Generate HTML index of files in @filelist and write it to buffer @buf.
  */
-void generate_index(struct evbuffer* buf, const char** files)
+void generate_index(struct evbuffer* buf, char* const* files)
 {
 	evbuffer_add_reference(buf, head, sizeof(head)-1, NULL, NULL);
 

@@ -62,7 +62,7 @@ void init_charset(const char* charset)
  *
  * Returns: 1 if it is, 0 otherwise
  */
-static int has_file(const char* path, const char* const* served)
+static int has_file(const char* path, char* const* served)
 {
 	for (; *served; served++)
 	{
@@ -122,7 +122,7 @@ void handle_close(struct evhttp_connection* conn, void* data)
  */
 void handle_file(struct evhttp_request* req, void* data)
 {
-	const char** argv = data;
+	const struct callback_data* cb_data = data;
 	const char* vpath = evhttp_request_get_uri(req);
 	char* dpath;
 	struct evhttp_connection* conn = evhttp_request_get_connection(req);
@@ -147,14 +147,27 @@ void handle_file(struct evhttp_request* req, void* data)
 		return;
 	}
 
-	if (!has_file(dpath, argv))
+	vpath = dpath;
+	if (cb_data->prefix)
+	{
+		if (strncmp(dpath, cb_data->prefix, cb_data->prefix_len)
+				|| dpath[cb_data->prefix_len] != '/')
+		{
+			evhttp_send_error(req, 404, "Not Found");
+			free(dpath);
+			return;
+		}
+		vpath += cb_data->prefix_len + 1;
+	}
+
+	if (!has_file(vpath, cb_data->files))
 		evhttp_send_error(req, 404, "Not Found");
 	else
 	{
-		int fd = open(dpath, O_RDONLY);
+		int fd = open(vpath, O_RDONLY);
 
 		if (fd == -1)
-			fprintf(stderr, "open(%s) failed: %s\n", dpath, strerror(errno));
+			fprintf(stderr, "open(%s) failed: %s\n", vpath, strerror(errno));
 		else
 		{
 			struct stat st;
@@ -162,9 +175,9 @@ void handle_file(struct evhttp_request* req, void* data)
 			/* we need to have a regular file here,
 			 * with static Content-Length */
 			if (fstat(fd, &st))
-				fprintf(stderr, "fstat(%s) failed: %s\n", dpath, strerror(errno));
+				fprintf(stderr, "fstat(%s) failed: %s\n", vpath, strerror(errno));
 			else if (!S_ISREG(st.st_mode))
-				fprintf(stderr, "fstat(%s) says it is not a regular file\n", dpath);
+				fprintf(stderr, "fstat(%s) says it is not a regular file\n", vpath);
 			else
 			{
 				struct evbuffer* buf = evbuffer_new();
@@ -257,7 +270,7 @@ void handle_file(struct evhttp_request* req, void* data)
  */
 void handle_index(struct evhttp_request* req, void* data)
 {
-	const char** argv = data;
+	const struct callback_data* cb_data = data;
 	struct evbuffer* buf = evbuffer_new();
 	struct evkeyvalq* headers = evhttp_request_get_output_headers(req);
 
@@ -269,7 +282,7 @@ void handle_index(struct evhttp_request* req, void* data)
 				"text/html; charset=utf-8"))
 		fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
 
-	generate_index(buf, argv);
+	generate_index(buf, cb_data->files);
 
 	evhttp_send_reply(req, 200, "OK", buf);
 	evbuffer_free(buf);
