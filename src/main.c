@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
 	evhttp_set_gencb(http, handle_file, &cb_data);
 	/* index callback */
 	if (!prefix)
-		evhttp_set_cb(http, "/", handle_index, &argv[optind]);
+		evhttp_set_cb(http, "/", handle_index, &cb_data);
 	else
 	{
 		char* index_uri = malloc(cb_data.prefix_len + 3); /* 2x/ + \0 */
