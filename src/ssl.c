@@ -58,8 +58,8 @@ int init_ssl(struct evhttp* http, const char* extip)
 	X509* x509;
 	X509_NAME* name;
 	RSA* rsa;
-	char sha256_buf[32];
-	int i;
+	unsigned char sha256_buf[32];
+	unsigned int i;
 
 	SSL_load_error_strings();
 	SSL_library_init();
@@ -117,8 +117,10 @@ int init_ssl(struct evhttp* http, const char* extip)
 	/* Set subject & issuer */
 	name = X509_get_subject_name(x509);
 
-	X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, "pshs", -1, -1, 0);
-	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, extip, -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC,
+			(const unsigned char*) "pshs", -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
+			(const unsigned char*) extip, -1, -1, 0);
 
 	/* Self-signed => issuer = subject */
 	X509_set_issuer_name(x509, name);
