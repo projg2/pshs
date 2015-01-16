@@ -63,6 +63,8 @@ AC_ARG_ENABLE([qrencode],
 AS_IF([test x"$enable_qrencode" != x"no"], [
 	PKG_CHECK_MODULES([QRENCODE], [libqrencode], [
 		AC_DEFINE([HAVE_LIBQRENCODE], [1], [define if you have libqrencode])
+	], [
+		AC_MSG_WARN([libqrencode not found, qrcode printing disabled])
 	])
 ])
 
@@ -73,6 +75,8 @@ AS_IF([test x"$enable_ssl" != x"no"], [
 	# libevent 2.1 required because of evhttp_set_bevcb()
 	PKG_CHECK_MODULES([LIBSSL], [libssl libcrypto libevent >= 2.1 libevent_openssl], [
 		AC_DEFINE([HAVE_LIBSSL], [1], [define if you have libssl])
+	], [
+		AC_MSG_WARN([openssl or libevent-2.1 not found, SSL support disabled])
 	])
 ])
 
