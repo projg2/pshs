@@ -24,6 +24,7 @@
 #include "handlers.h"
 #include "network.h"
 #include "qrencode.h"
+#include "ssl.h"
 
 /**
  * term_handler
