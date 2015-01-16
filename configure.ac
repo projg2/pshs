@@ -1,12 +1,13 @@
 AC_PREREQ([2.60])
-AC_INIT([pshs], [0.2.6])
+AC_INIT([pshs], [0.3_pre])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([1.9 foreign dist-bzip2 subdir-objects -Wall])
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 
-AC_PROG_CC
+AC_LANG([C++])
+AC_PROG_CXX
 AC_USE_SYSTEM_EXTENSIONS
 
 AC_CHECK_FUNCS([nl_langinfo])

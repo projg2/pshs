@@ -13,7 +13,11 @@
 #	include <errno.h>
 
 #	include <sys/socket.h>
-#	include <libnetlink.h>
+
+extern "C"
+{
+#		include <libnetlink.h>
+};
 
 #	include <netinet/in.h>
 #	include <netinet/ip.h>
