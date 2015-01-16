@@ -37,17 +37,17 @@ void print_qrcode(const char* data)
 	/* we need to encode two rows at once to get shape close to square */
 	for (y = 0; y < qr->width; y += 2)
 	{
-		char* row1 = qr->data + y * qr->width;
-		char* row2 = row1 + qr->width;
+		unsigned char* row1 = qr->data + y * qr->width;
+		unsigned char* row2 = row1 + qr->width;
 
 		for (x = 0; x < qr_margin; ++x)
 			fputs("\xe2\x96\x88", stderr);
 
 		for (x = 0; x < qr->width; ++x)
 		{
-			char bit1 = row1[x] & 1;
+			unsigned char bit1 = row1[x] & 1;
 			/* make sure not to go past last row if width is odd */
-			char bit2 = y+1 < qr->width ? row2[x] & 1 : 0;
+			unsigned char bit2 = y+1 < qr->width ? row2[x] & 1 : 0;
 
 			if (bit1 && bit2)
 				fputc(' ', stderr);
