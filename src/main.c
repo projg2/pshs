@@ -36,7 +36,7 @@
  */
 static void term_handler(evutil_socket_t fd, short what, void* data)
 {
-	struct event_base* evb = data;
+	struct event_base* evb = (struct event_base*) data;
 	const char* sig = "unknown";
 
 	switch (fd)
@@ -186,7 +186,7 @@ int main(int argc, char* argv[])
 		evhttp_set_cb(http, "/", handle_index, &cb_data);
 	else
 	{
-		char* index_uri = malloc(cb_data.prefix_len + 3); /* 2x/ + \0 */
+		char* index_uri = (char*) malloc(cb_data.prefix_len + 3); /* 2x/ + \0 */
 
 		if (!index_uri)
 		{
@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
 				prefix ? "/" : "",
 				urlenc ? urlenc : "");
 
-		buf = malloc(bytes_written); /* has + 1 for NUL thanks to \n */
+		buf = (char*) malloc(bytes_written); /* has + 1 for NUL thanks to \n */
 		if (buf)
 		{
 			sprintf(buf, "http%s://%s:%d/%s%s%s",

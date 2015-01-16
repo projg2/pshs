@@ -50,8 +50,8 @@ struct addr_search_data
  */
 static int store_addr(const struct sockaddr_nl* sa, struct nlmsghdr* n, void* data)
 {
-	struct addr_search_data* out = data;
-	struct ifaddrmsg* addr = NLMSG_DATA(n);
+	struct addr_search_data* out = (struct addr_search_data*) data;
+	struct ifaddrmsg* addr = (struct ifaddrmsg*) NLMSG_DATA(n);
 	struct rtattr*  rta_tb[IFA_MAX+1];
 
 	/* Based heavily on iproute2,
@@ -62,9 +62,9 @@ static int store_addr(const struct sockaddr_nl* sa, struct nlmsghdr* n, void* da
 	if (addr->ifa_family == AF_INET && rta_tb[IFA_LOCAL])
 	{
 		/* Get the actual IP address */
-		struct sockaddr_in* in = (void*) rta_tb[IFA_LOCAL];
+		struct sockaddr_in* in = (struct sockaddr_in*) (void*) rta_tb[IFA_LOCAL];
 		/* using char[4] allows us to ignore endianness */
-		unsigned char* binaddr = (void*) &(in->sin_addr.s_addr);
+		unsigned char* binaddr = (unsigned char*) (void*) &(in->sin_addr.s_addr);
 
 		enum is_local islocal = ISLOCAL_NO;
 
@@ -103,7 +103,7 @@ const char* get_rtnl_external_ip(void)
 {
 #ifdef HAVE_LIBNETLINK
 	struct rtnl_handle rth;
-	struct addr_search_data out = { NULL, 0, 0 };
+	struct addr_search_data out = { NULL, 0, ISLOCAL_NO };
 
 	if (rtnl_open(&rth, 0) < 0)
 	{

@@ -43,7 +43,7 @@ static void key_progress_cb(int p, int n, void* arg)
 
 static struct bufferevent* https_bev_callback(struct event_base* evb, void* data)
 {
-	SSL_CTX *ctx = data;
+	SSL_CTX* ctx = (SSL_CTX*) data;
 
 	return bufferevent_openssl_socket_new(evb, -1, SSL_new(ctx),
 			BUFFEREVENT_SSL_ACCEPTING, BEV_OPT_CLOSE_ON_FREE);

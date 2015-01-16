@@ -122,7 +122,7 @@ void handle_close(struct evhttp_connection* conn, void* data)
  */
 void handle_file(struct evhttp_request* req, void* data)
 {
-	const struct callback_data* cb_data = data;
+	const struct callback_data* cb_data = (struct callback_data*) data;
 	const char* vpath = evhttp_request_get_uri(req);
 	char* dpath;
 	struct evhttp_connection* conn = evhttp_request_get_connection(req);
@@ -270,7 +270,7 @@ void handle_file(struct evhttp_request* req, void* data)
  */
 void handle_index(struct evhttp_request* req, void* data)
 {
-	const struct callback_data* cb_data = data;
+	const struct callback_data* cb_data = (struct callback_data*) data;
 	struct evbuffer* buf = evbuffer_new();
 	struct evkeyvalq* headers = evhttp_request_get_output_headers(req);
 
