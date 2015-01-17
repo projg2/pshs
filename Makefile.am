@@ -7,6 +7,7 @@ pshs_SOURCES = src/main.cxx src/content-type.cxx src/content-type.h \
 	src/network.cxx src/network.h src/rtnl.cxx src/qrencode.cxx \
 	src/qrencode.h src/ssl.cxx src/ssl.h
 
+AM_CXXFLAGS = -std=c++11
 AM_CPPFLAGS = $(LIBEVENT_CFLAGS) $(QRENCODE_CFLAGS) $(LIBSSL_CFLAGS)
 LDADD = $(LIBEVENT_LIBS) $(QRENCODE_LIBS) $(LIBSSL_LIBS)
 
