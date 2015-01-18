@@ -10,7 +10,13 @@
 
 #include <event2/http.h>
 
-int init_ssl(struct evhttp* http, const char* extip);
-void destroy_ssl();
+class SSLMod
+{
+public:
+	SSLMod(evhttp* http, const char* extip, bool enable);
+	~SSLMod();
+
+	bool enabled;
+};
 
 #endif /*_PSHS_CONTENT_SSL_H*/

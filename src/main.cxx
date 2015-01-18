@@ -228,15 +228,10 @@ int main(int argc, char* argv[])
 	/* init helper modules */
 	init_charset(tmp);
 	ContentType ct;
-	ExternalIP extip{port, bindip, upnp};
-
 	cb_data.ct = &ct;
 
-	if (ssl)
-	{
-		if (!init_ssl(http.get(), extip.addr))
-			return 1;
-	}
+	ExternalIP extip{port, bindip, upnp};
+	SSLMod ssl_mod(http.get(), extip.addr, ssl);
 
 	fprintf(stderr, "Ready to share %d files.\n", argc - optind);
 	fprintf(stderr, "Bound to %s:%d.\n", bindip, port);
@@ -296,9 +291,6 @@ int main(int argc, char* argv[])
 
 	/* run the loop */
 	event_base_dispatch(evb.get());
-
-	/* clean up external modules */
-	destroy_ssl();
 
 	return 0;
 }

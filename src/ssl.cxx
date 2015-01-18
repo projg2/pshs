@@ -50,8 +50,12 @@ static struct bufferevent* https_bev_callback(struct event_base* evb, void* data
 }
 #endif
 
-int init_ssl(struct evhttp* http, const char* extip)
+SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
+	: enabled(false)
 {
+	if (!enable)
+		return;
+
 #ifdef HAVE_LIBSSL
 
 	EVP_PKEY* pkey;
@@ -68,7 +72,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 	if (!pkey)
 	{
 		fputs("EVP_PKEY_new() failed to allocate new private key.\n", stderr);
-		return 0;
+		return;
 	}
 
 	x509 = X509_new();
@@ -76,7 +80,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 	{
 		fputs("X509_new() failed to allocate new certificate.\n", stderr);
 		EVP_PKEY_free(pkey);
-		return 0;
+		return;
 	}
 
 	/* XXX: settable params */
@@ -86,7 +90,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 		fputs("RSA_generate_key() failed to generate the private key.\n", stderr);
 		X509_free(x509);
 		EVP_PKEY_free(pkey);
-		return 0;
+		return;
 	}
 
 	if (!EVP_PKEY_assign_RSA(pkey, rsa))
@@ -95,7 +99,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 		RSA_free(rsa);
 		X509_free(x509);
 		EVP_PKEY_free(pkey);
-		return 0;
+		return;
 	}
 
 	if (!X509_set_pubkey(x509, pkey))
@@ -103,7 +107,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 		fputs("X509_set_pubkey() failed.\n", stderr);
 		X509_free(x509);
 		EVP_PKEY_free(pkey);
-		return 0;
+		return;
 	}
 
 	/* X509v3 */
@@ -130,7 +134,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 		fputs("X509_sign() failed.\n", stderr);
 		X509_free(x509);
 		EVP_PKEY_free(pkey);
-		return 0;
+		return;
 	}
 
 	ssl = SSL_CTX_new(SSLv23_server_method());
@@ -139,7 +143,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 		fputs("SSL_CTX_new() failed.\n", stderr);
 		X509_free(x509);
 		EVP_PKEY_free(pkey);
-		return 0;
+		return;
 	}
 
 	if (!SSL_CTX_use_certificate(ssl, x509))
@@ -148,7 +152,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 		SSL_CTX_free(ssl);
 		X509_free(x509);
 		EVP_PKEY_free(pkey);
-		return 0;
+		return;
 	}
 	X509_free(x509);
 
@@ -157,7 +161,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 		fputs("SSL_CTX_use_PrivateKey() failed.\n", stderr);
 		SSL_CTX_free(ssl);
 		EVP_PKEY_free(pkey);
-		return 0;
+		return;
 	}
 	EVP_PKEY_free(pkey);
 
@@ -168,7 +172,7 @@ int init_ssl(struct evhttp* http, const char* extip)
 	{
 		fputs("X509_digest() failed.\n", stderr);
 		SSL_CTX_free(ssl);
-		return 0;
+		return;
 	}
 
 	assert(i == sizeof(sha256_buf));
@@ -179,18 +183,20 @@ int init_ssl(struct evhttp* http, const char* extip)
 				-i % (sizeof(sha256_buf) / 2) == 1 ? '\n' : ' ');
 	}
 
-	return 1;
+	enabled = true;
 
 #else
 
 	fputs("SSL/TLS support disabled at build time.\n", stderr);
-	return 0;
 
 #endif
 }
 
-void destroy_ssl()
+SSLMod::~SSLMod()
 {
+	if (!enabled)
+		return;
+
 #ifdef HAVE_LIBSSL
 	SSL_CTX_free(ssl);
 #endif
