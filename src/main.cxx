@@ -229,15 +229,16 @@ int main(int argc, char* argv[])
 
 	/* init helper modules */
 	init_charset(tmp);
-	init_content_type();
+	ContentType ct;
 	extip = init_external_ip(port, bindip, upnp);
+
+	cb_data.ct = &ct;
 
 	if (ssl)
 	{
 		if (!init_ssl(http.get(), extip))
 		{
 			destroy_external_ip(port);
-			destroy_content_type();
 			return 1;
 		}
 	}
@@ -304,7 +305,6 @@ int main(int argc, char* argv[])
 	/* clean up external modules */
 	destroy_ssl();
 	destroy_external_ip(port);
-	destroy_content_type();
 
 	return 0;
 }

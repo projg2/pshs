@@ -9,11 +9,16 @@
 
 #include <event2/http.h>
 
+// abstract
+class ContentType;
+
 struct callback_data
 {
 	const char* prefix;
 	size_t prefix_len;
 	char* const* files;
+
+	ContentType* ct;
 };
 
 void init_charset(const char* charset);

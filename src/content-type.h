@@ -7,9 +7,13 @@
 #ifndef _PSHS_CONTENT_TYPE_H
 #define _PSHS_CONTENT_TYPE_H
 
-void init_content_type(void);
-void destroy_content_type(void);
+class ContentType
+{
+public:
+	ContentType();
+	~ContentType();
 
-const char* guess_content_type(int fd);
+	const char* guess(int fd);
+};
 
 #endif /*_PSHS_CONTENT_TYPE_H*/

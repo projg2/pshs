@@ -227,7 +227,7 @@ void handle_file(struct evhttp_request* req, void* data)
 
 				/* Good Content-Type is nice for users. */
 				if (evhttp_add_header(headers, "Content-Type",
-							guess_content_type(fd)))
+							cb_data->ct->guess(fd)))
 					fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
 
 				/* Send the file. */

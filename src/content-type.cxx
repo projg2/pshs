@@ -16,18 +16,18 @@
 #	include <magic.h>
 
 /* XXX: make this local, pass within funcs? */
-magic_t magic;
+static magic_t magic;
 #endif
 
 #include "content-type.h"
 
 /**
- * init_content_type
+ * ContentType::ContentType
  *
  * Init Content-Type guessing algos. If libmagic is enabled, initialize it
  * and load the database.
  */
-void init_content_type(void)
+ContentType::ContentType(void)
 {
 #ifdef HAVE_LIBMAGIC
 	magic = magic_open(MAGIC_MIME);
@@ -46,11 +46,11 @@ void init_content_type(void)
 }
 
 /**
- * destroy_content_type
+ * ContentType::~ContentType
  *
  * Clean up after Content-Type guessing. Unload libmagic if enabled.
  */
-void destroy_content_type(void)
+ContentType::~ContentType(void)
 {
 #ifdef HAVE_LIBMAGIC
 	if (magic)
@@ -59,7 +59,7 @@ void destroy_content_type(void)
 }
 
 /**
- * guess_content_type
+ * ContentType::guess
  * @fd: open file descriptor
  *
  * Guess file format for open file @fd and return it as a string.
@@ -69,7 +69,7 @@ void destroy_content_type(void)
  *
  * Returns: file MIME type
  */
-const char *guess_content_type(int fd)
+const char* ContentType::guess(int fd)
 {
 #ifdef HAVE_LIBMAGIC
 	if (magic)
