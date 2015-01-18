@@ -8,6 +8,7 @@
 #include <array>
 #include <functional>
 #include <memory>
+#include <sstream>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -186,22 +187,10 @@ int main(int argc, char* argv[])
 		evhttp_set_cb(http.get(), "/", handle_index, &cb_data);
 	else
 	{
-		char* index_uri = (char*) malloc(cb_data.prefix_len + 3); /* 2x/ + \0 */
+		std::stringstream index_uri;
+		index_uri << '/' << prefix << '/';
 
-		if (!index_uri)
-		{
-			fprintf(stderr, "malloc() for index_uri failed.\n");
-			return 1;
-		}
-
-		index_uri[0] = '/';
-		strcpy(&index_uri[1], prefix);
-		index_uri[cb_data.prefix_len + 1] = '/';
-		index_uri[cb_data.prefix_len + 2] = 0;
-
-		evhttp_set_cb(http.get(), index_uri, handle_index, &cb_data);
-
-		free(index_uri);
+		evhttp_set_cb(http.get(), index_uri.str().c_str(), handle_index, &cb_data);
 	}
 
 	/* if no port was provided, choose a nice random value */
@@ -237,8 +226,6 @@ int main(int argc, char* argv[])
 	fprintf(stderr, "Bound to %s:%d.\n", bindip, port);
 	if (extip.addr)
 	{
-		int bytes_written;
-		char* buf;
 		char* urlenc = 0;
 
 		if (argc - optind == 1)
@@ -248,24 +235,18 @@ int main(int argc, char* argv[])
 				fprintf(stderr, "Warning: urlencode for %s failed\n", argv[optind]);
 		}
 
-		fputs("Server reachable at: ", stderr);
-		bytes_written = fprintf(stderr, "http%s://%s:%d/%s%s%s\n",
-				ssl ? "s" : "", extip.addr, port,
-				prefix ? prefix : "",
-				prefix ? "/" : "",
-				urlenc ? urlenc : "");
+		std::stringstream server_uri;
+		server_uri << "http";
+		if (ssl)
+			server_uri << 's';
+		server_uri << "://" << extip.addr << ':' << port << '/';
+		if (prefix)
+			server_uri << prefix << '/';
+		if (urlenc)
+			server_uri << urlenc;
 
-		buf = (char*) malloc(bytes_written); /* has + 1 for NUL thanks to \n */
-		if (buf)
-		{
-			sprintf(buf, "http%s://%s:%d/%s%s%s",
-				ssl ? "s" : "", extip.addr, port,
-				prefix ? prefix : "",
-				prefix ? "/" : "",
-				urlenc ? urlenc : "");
-			print_qrcode(buf);
-			free(buf);
-		}
+		fprintf(stderr, "Server reachable at: %s\n", server_uri.str().c_str());
+		print_qrcode(server_uri.str().c_str());
 
 		if (urlenc)
 			free(urlenc);
