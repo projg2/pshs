@@ -103,8 +103,6 @@ int main(int argc, char* argv[])
 	/* main variables */
 	const std::array<int, 5> sigs{ SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2 };
 
-	const char* extip;
-
 	struct callback_data cb_data;
 
 	setlocale(LC_ALL, "");
@@ -230,22 +228,19 @@ int main(int argc, char* argv[])
 	/* init helper modules */
 	init_charset(tmp);
 	ContentType ct;
-	extip = init_external_ip(port, bindip, upnp);
+	ExternalIP extip{port, bindip, upnp};
 
 	cb_data.ct = &ct;
 
 	if (ssl)
 	{
-		if (!init_ssl(http.get(), extip))
-		{
-			destroy_external_ip(port);
+		if (!init_ssl(http.get(), extip.addr))
 			return 1;
-		}
 	}
 
 	fprintf(stderr, "Ready to share %d files.\n", argc - optind);
 	fprintf(stderr, "Bound to %s:%d.\n", bindip, port);
-	if (extip)
+	if (extip.addr)
 	{
 		int bytes_written;
 		char* buf;
@@ -260,7 +255,7 @@ int main(int argc, char* argv[])
 
 		fputs("Server reachable at: ", stderr);
 		bytes_written = fprintf(stderr, "http%s://%s:%d/%s%s%s\n",
-				ssl ? "s" : "", extip, port,
+				ssl ? "s" : "", extip.addr, port,
 				prefix ? prefix : "",
 				prefix ? "/" : "",
 				urlenc ? urlenc : "");
@@ -269,7 +264,7 @@ int main(int argc, char* argv[])
 		if (buf)
 		{
 			sprintf(buf, "http%s://%s:%d/%s%s%s",
-				ssl ? "s" : "", extip, port,
+				ssl ? "s" : "", extip.addr, port,
 				prefix ? prefix : "",
 				prefix ? "/" : "",
 				urlenc ? urlenc : "");
@@ -304,7 +299,6 @@ int main(int argc, char* argv[])
 
 	/* clean up external modules */
 	destroy_ssl();
-	destroy_external_ip(port);
 
 	return 0;
 }

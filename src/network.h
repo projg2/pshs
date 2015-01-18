@@ -7,8 +7,16 @@
 #ifndef _PSHS_NETWORK_H
 #define _PSHS_NETWORK_H
 
-const char* init_external_ip(unsigned int port, const char* bindip, int use_upnp);
-void destroy_external_ip(unsigned int port);
+class ExternalIP
+{
+	int _port;
+
+public:
+	ExternalIP(unsigned int port, const char* bindip, bool use_upnp);
+	~ExternalIP();
+
+	const char* addr;
+};
 
 const char* get_rtnl_external_ip(void);
 
