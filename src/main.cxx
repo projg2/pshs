@@ -272,12 +272,12 @@ int main(int argc, char* argv[])
 	}
 
 	std::array<std::unique_ptr<event, std::function<void(event*)>>, sigs.size()>
-		sigevents{std::unique_ptr<event, std::function<void(event*)>>{nullptr, event_free}};
+		sigevents;
 
 	/* init signal handlers */
 	for (size_t i = 0; i < sigs.size(); ++i)
 	{
-		sigevents[i].reset(evsignal_new(evb.get(), sigs[i], term_handler, evb.get()));
+		sigevents[i] = {evsignal_new(evb.get(), sigs[i], term_handler, evb.get()), event_free};
 		if (!sigevents[i])
 			fprintf(stderr, "evsignal_new(%d) failed.\n", sigs[i]);
 		else;
