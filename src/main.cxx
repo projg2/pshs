@@ -6,6 +6,8 @@
 #include "config.h"
 
 #include <array>
+#include <functional>
+#include <memory>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -99,11 +101,7 @@ int main(int argc, char* argv[])
 	int upnp = 1;
 
 	/* main variables */
-	struct event_base* evb;
-	struct evhttp* http;
-
 	const std::array<int, 5> sigs{ SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2 };
-	std::array<event*, sigs.size()> sigevents;
 
 	const char* extip;
 
@@ -166,26 +164,28 @@ int main(int argc, char* argv[])
 		cb_data.prefix_len = strlen(prefix);
 	cb_data.files = &argv[optind];
 
-	evb = event_base_new();
+	std::unique_ptr<event_base, std::function<void(event_base*)>>
+		evb{event_base_new(), event_base_free};
 	if (!evb)
 	{
 		fprintf(stderr, "event_base_new() failed.\n");
 		return 1;
 	}
-	http = evhttp_new(evb);
+
+	std::unique_ptr<evhttp, std::function<void(evhttp*)>>
+		http{evhttp_new(evb.get()), evhttp_free};
 	if (!http)
 	{
 		fprintf(stderr, "evhttp_new() failed.\n");
-		event_base_free(evb);
 		return 1;
 	}
 	/* we're just a small download server, GET & HEAD should handle it all */
-	evhttp_set_allowed_methods(http, EVHTTP_REQ_GET | EVHTTP_REQ_HEAD);
+	evhttp_set_allowed_methods(http.get(), EVHTTP_REQ_GET | EVHTTP_REQ_HEAD);
 	/* generic callback - file download */
-	evhttp_set_gencb(http, handle_file, &cb_data);
+	evhttp_set_gencb(http.get(), handle_file, &cb_data);
 	/* index callback */
 	if (!prefix)
-		evhttp_set_cb(http, "/", handle_index, &cb_data);
+		evhttp_set_cb(http.get(), "/", handle_index, &cb_data);
 	else
 	{
 		char* index_uri = (char*) malloc(cb_data.prefix_len + 3); /* 2x/ + \0 */
@@ -193,8 +193,6 @@ int main(int argc, char* argv[])
 		if (!index_uri)
 		{
 			fprintf(stderr, "malloc() for index_uri failed.\n");
-			evhttp_free(http);
-			event_base_free(evb);
 			return 1;
 		}
 
@@ -203,7 +201,7 @@ int main(int argc, char* argv[])
 		index_uri[cb_data.prefix_len + 1] = '/';
 		index_uri[cb_data.prefix_len + 2] = 0;
 
-		evhttp_set_cb(http, index_uri, handle_index, &cb_data);
+		evhttp_set_cb(http.get(), index_uri, handle_index, &cb_data);
 
 		free(index_uri);
 	}
@@ -216,12 +214,10 @@ int main(int argc, char* argv[])
 		port = random() % 0x7bff + 0x400;
 	}
 
-	if (evhttp_bind_socket(http, bindip, port))
+	if (evhttp_bind_socket(http.get(), bindip, port))
 	{
 		fprintf(stderr, "evhttp_bind_socket(%s, %d) failed.\n",
 				bindip, port);
-		evhttp_free(http);
-		event_base_free(evb);
 		return 1;
 	}
 
@@ -238,12 +234,10 @@ int main(int argc, char* argv[])
 
 	if (ssl)
 	{
-		if (!init_ssl(http, extip))
+		if (!init_ssl(http.get(), extip))
 		{
 			destroy_external_ip(port);
 			destroy_content_type();
-			evhttp_free(http);
-			event_base_free(evb);
 			return 1;
 		}
 	}
@@ -286,14 +280,17 @@ int main(int argc, char* argv[])
 			free(urlenc);
 	}
 
+	std::array<std::unique_ptr<event, std::function<void(event*)>>, sigs.size()>
+		sigevents{std::unique_ptr<event, std::function<void(event*)>>{nullptr, event_free}};
+
 	/* init signal handlers */
 	for (size_t i = 0; i < sigs.size(); ++i)
 	{
-		sigevents[i] = evsignal_new(evb, sigs[i], term_handler, evb);
+		sigevents[i].reset(evsignal_new(evb.get(), sigs[i], term_handler, evb.get()));
 		if (!sigevents[i])
 			fprintf(stderr, "evsignal_new(%d) failed.\n", sigs[i]);
-		else
-			event_add(sigevents[i], NULL);
+		else;
+			event_add(sigevents[i].get(), NULL);
 	}
 
 	/* ignore SIGPIPE in case of interrupted connection */
@@ -302,22 +299,12 @@ int main(int argc, char* argv[])
 				"on interrupted connections.", stderr);
 
 	/* run the loop */
-	event_base_dispatch(evb);
+	event_base_dispatch(evb.get());
 
 	/* clean up external modules */
 	destroy_ssl();
 	destroy_external_ip(port);
 	destroy_content_type();
-
-	/* clean up signal handlers */
-	for (size_t i = 0; i < sigs.size(); ++i)
-	{
-		if (sigevents[i])
-			event_free(sigevents[i]);
-	}
-
-	evhttp_free(http);
-	event_base_free(evb);
 
 	return 0;
 }
