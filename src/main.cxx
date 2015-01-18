@@ -5,6 +5,8 @@
 
 #include "config.h"
 
+#include <array>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -86,7 +88,7 @@ const char opt_help[] =
 int main(int argc, char* argv[])
 {
 	/* temporary variables */
-	int opt, i;
+	int opt;
 	char* tmp;
 
 	/* default config */
@@ -100,8 +102,8 @@ int main(int argc, char* argv[])
 	struct event_base* evb;
 	struct evhttp* http;
 
-	struct event* sigevents[5];
-	const int sigs[5] = { SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2 };
+	const std::array<int, 5> sigs{ SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2 };
+	std::array<event*, sigs.size()> sigevents;
 
 	const char* extip;
 
@@ -151,7 +153,7 @@ int main(int argc, char* argv[])
 	}
 
 	/* Remove ./ prefixes from filenames, they're known to cause trouble. */
-	for (i = optind; i < argc; i++)
+	for (int i = optind; i < argc; ++i)
 	{
 		if (argv[i][0] == '.' && argv[i][1] == '/')
 			argv[i] += 2;
@@ -285,7 +287,7 @@ int main(int argc, char* argv[])
 	}
 
 	/* init signal handlers */
-	for (i = 0; i < 5; i++)
+	for (size_t i = 0; i < sigs.size(); ++i)
 	{
 		sigevents[i] = evsignal_new(evb, sigs[i], term_handler, evb);
 		if (!sigevents[i])
@@ -308,7 +310,7 @@ int main(int argc, char* argv[])
 	destroy_content_type();
 
 	/* clean up signal handlers */
-	for (i = 0; i < 5; i++)
+	for (size_t i = 0; i < sigs.size(); ++i)
 	{
 		if (sigevents[i])
 			event_free(sigevents[i]);
