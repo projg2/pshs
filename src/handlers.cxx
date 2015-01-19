@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <memory>
+#include <sstream>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -239,11 +240,10 @@ void handle_file(struct evhttp_request* req, void* data)
 					evbuffer_add_file(buf, fd, first, last - first + 1);
 				if (range)
 				{
-					char lenbuf[96]; /* XXX */
-					sprintf(lenbuf, "bytes %" PRIdMAX "-%" PRIdMAX
-							"/%" PRIdMAX, first, last, (intmax_t) size);
+					std::stringstream rangebuf;
+					rangebuf << "bytes " << first << '-' << last << '/' << size;
 
-					if (evhttp_add_header(headers, "Content-Range", lenbuf))
+					if (evhttp_add_header(headers, "Content-Range", rangebuf.str().c_str()))
 						fprintf(stderr, "evhttp_add_header(Content-Range) failed\n");
 					evhttp_send_reply(req, 206, "Partial Content", buf);
 				} else
