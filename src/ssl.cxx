@@ -7,6 +7,10 @@
 
 #include "ssl.h"
 
+#include <functional>
+#include <memory>
+#include <stdexcept>
+
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
@@ -23,7 +27,7 @@
 #endif
 
 #ifdef HAVE_LIBSSL
-static SSL_CTX* ssl;
+static std::unique_ptr<SSL_CTX, std::function<void(SSL_CTX*)>> ssl;
 
 static void key_progress_cb(int p, int n, void* arg)
 {
@@ -58,68 +62,40 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 
 #ifdef HAVE_LIBSSL
 
-	EVP_PKEY* pkey;
-	X509* x509;
 	X509_NAME* name;
-	RSA* rsa;
 	unsigned char sha256_buf[32];
 	unsigned int i;
 
 	SSL_load_error_strings();
 	SSL_library_init();
 
-	pkey = EVP_PKEY_new();
-	if (!pkey)
-	{
-		fputs("EVP_PKEY_new() failed to allocate new private key.\n", stderr);
-		return;
-	}
-
-	x509 = X509_new();
-	if (!x509)
-	{
-		fputs("X509_new() failed to allocate new certificate.\n", stderr);
-		EVP_PKEY_free(pkey);
-		return;
-	}
-
+	std::unique_ptr<EVP_PKEY, std::function<void(EVP_PKEY*)>>
+		pkey{EVP_PKEY_new(), EVP_PKEY_free};
+	std::unique_ptr<X509, std::function<void(X509*)>>
+		x509{X509_new(), X509_free};
 	/* XXX: settable params */
-	rsa = RSA_generate_key(2048, RSA_F4, key_progress_cb, 0);
-	if (!rsa)
-	{
-		fputs("RSA_generate_key() failed to generate the private key.\n", stderr);
-		X509_free(x509);
-		EVP_PKEY_free(pkey);
-		return;
-	}
+	std::unique_ptr<RSA, std::function<void(RSA*)>>
+		rsa{RSA_generate_key(2048, RSA_F4, key_progress_cb, 0), RSA_free};
 
-	if (!EVP_PKEY_assign_RSA(pkey, rsa))
-	{
-		fputs("EVP_PKEY_assign_RSA() failed.\n", stderr);
-		RSA_free(rsa);
-		X509_free(x509);
-		EVP_PKEY_free(pkey);
-		return;
-	}
+	if (!pkey || !x509 || !rsa)
+		throw std::bad_alloc();
 
-	if (!X509_set_pubkey(x509, pkey))
-	{
-		fputs("X509_set_pubkey() failed.\n", stderr);
-		X509_free(x509);
-		EVP_PKEY_free(pkey);
-		return;
-	}
+	if (!EVP_PKEY_assign_RSA(pkey.get(), rsa.get()))
+		throw std::runtime_error("EVP_PKEY_assign_RSA() failed");
+
+	if (!X509_set_pubkey(x509.get(), pkey.get()))
+		throw std::runtime_error("X509_set_pubkey() failed");
 
 	/* X509v3 */
-	X509_set_version(x509, 2);
+	X509_set_version(x509.get(), 2);
 	/* Semi-random serial number to avoid repetitions */
-	ASN1_INTEGER_set(X509_get_serialNumber(x509), time(NULL));
+	ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), time(NULL));
 	/* Valid for 24 hours */
-	X509_gmtime_adj(X509_get_notBefore(x509), 0);
-	X509_gmtime_adj(X509_get_notAfter(x509), 60*60*24);
+	X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
+	X509_gmtime_adj(X509_get_notAfter(x509.get()), 60*60*24);
 
 	/* Set subject & issuer */
-	name = X509_get_subject_name(x509);
+	name = X509_get_subject_name(x509.get());
 
 	X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC,
 			(const unsigned char*) "pshs", -1, -1, 0);
@@ -127,53 +103,26 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 			(const unsigned char*) extip, -1, -1, 0);
 
 	/* Self-signed => issuer = subject */
-	X509_set_issuer_name(x509, name);
+	X509_set_issuer_name(x509.get(), name);
 
-	if (!X509_sign(x509, pkey, EVP_sha512()))
-	{
-		fputs("X509_sign() failed.\n", stderr);
-		X509_free(x509);
-		EVP_PKEY_free(pkey);
-		return;
-	}
+	if (!X509_sign(x509.get(), pkey.get(), EVP_sha512()))
+		throw std::runtime_error("X509_sign() failed");
 
-	ssl = SSL_CTX_new(SSLv23_server_method());
+	ssl = {SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free};
 	if (!ssl)
-	{
-		fputs("SSL_CTX_new() failed.\n", stderr);
-		X509_free(x509);
-		EVP_PKEY_free(pkey);
-		return;
-	}
+		throw std::bad_alloc();
 
-	if (!SSL_CTX_use_certificate(ssl, x509))
-	{
-		fputs("SSL_CTX_use_certificate() failed.\n", stderr);
-		SSL_CTX_free(ssl);
-		X509_free(x509);
-		EVP_PKEY_free(pkey);
-		return;
-	}
-	X509_free(x509);
+	if (!SSL_CTX_use_certificate(ssl.get(), x509.get()))
+		throw std::runtime_error("SSL_CTX_use_certificate() failed");
 
-	if (!SSL_CTX_use_PrivateKey(ssl, pkey))
-	{
-		fputs("SSL_CTX_use_PrivateKey() failed.\n", stderr);
-		SSL_CTX_free(ssl);
-		EVP_PKEY_free(pkey);
-		return;
-	}
-	EVP_PKEY_free(pkey);
+	if (!SSL_CTX_use_PrivateKey(ssl.get(), pkey.get()))
+		throw std::runtime_error("SSL_CTX_use_PrivateKey() failed");
 
-	evhttp_set_bevcb(http, https_bev_callback, ssl);
+	evhttp_set_bevcb(http, https_bev_callback, ssl.get());
 
 	/* print fingerprint */
-	if (!X509_digest(x509, EVP_sha256(), sha256_buf, &i))
-	{
-		fputs("X509_digest() failed.\n", stderr);
-		SSL_CTX_free(ssl);
-		return;
-	}
+	if (!X509_digest(x509.get(), EVP_sha256(), sha256_buf, &i))
+		throw std::runtime_error("X509_digest() failed");
 
 	assert(i == sizeof(sha256_buf));
 	fputs("Certificate fingerprint:\n", stderr);
@@ -198,6 +147,6 @@ SSLMod::~SSLMod()
 		return;
 
 #ifdef HAVE_LIBSSL
-	SSL_CTX_free(ssl);
+	ssl.reset(nullptr);
 #endif
 }
