@@ -9,6 +9,7 @@
 #include <functional>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -226,15 +227,6 @@ int main(int argc, char* argv[])
 	fprintf(stderr, "Bound to %s:%d.\n", bindip, port);
 	if (extip.addr)
 	{
-		char* urlenc = 0;
-
-		if (argc - optind == 1)
-		{
-			urlenc = evhttp_encode_uri(argv[optind]);
-			if (!urlenc)
-				fprintf(stderr, "Warning: urlencode for %s failed\n", argv[optind]);
-		}
-
 		std::stringstream server_uri;
 		server_uri << "http";
 		if (ssl)
@@ -242,14 +234,17 @@ int main(int argc, char* argv[])
 		server_uri << "://" << extip.addr << ':' << port << '/';
 		if (prefix)
 			server_uri << prefix << '/';
-		if (urlenc)
-			server_uri << urlenc;
+		if (argc - optind == 1)
+		{
+			std::unique_ptr<char, std::function<void(char*)>>
+				urlenc{evhttp_encode_uri(argv[optind]), free};
+			if (!urlenc)
+				throw std::bad_alloc();
+			server_uri << urlenc.get();
+		}
 
 		fprintf(stderr, "Server reachable at: %s\n", server_uri.str().c_str());
 		print_qrcode(server_uri.str().c_str());
-
-		if (urlenc)
-			free(urlenc);
 	}
 
 	std::array<std::unique_ptr<event, std::function<void(event*)>>, sigs.size()>

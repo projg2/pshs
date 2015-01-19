@@ -5,6 +5,10 @@
 
 #include "config.h"
 
+#include <functional>
+#include <memory>
+#include <stdexcept>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,34 +62,21 @@ void generate_index(struct evbuffer* buf, char* const* files)
 
 	for (; *files; files++)
 	{
-		char* urlenc;
-		char* htmlenc;
+		std::unique_ptr<char, std::function<void(char*)>>
+			urlenc{evhttp_encode_uri(*files), free},
+			htmlenc{evhttp_htmlescape(*files), free};
 
-		urlenc = evhttp_encode_uri(*files);
-		if (!urlenc)
-		{
-			fprintf(stderr, "urlencode failed for %s\n", *files);
-			continue;
-		}
-		htmlenc = evhttp_htmlescape(*files);
-		if (!htmlenc)
-		{
-			fprintf(stderr, "html-escape failed for %s\n", *files);
-			free(urlenc);
-			continue;
-		}
+		if (!urlenc || !htmlenc)
+			throw std::bad_alloc();
 
 		evbuffer_add_reference(buf, filenameprefix,
 				sizeof(filenameprefix)-1, NULL, NULL);
-		evbuffer_add(buf, urlenc, strlen(urlenc));
+		evbuffer_add(buf, urlenc.get(), strlen(urlenc.get()));
 		evbuffer_add_reference(buf, filenamemidfix,
 				sizeof(filenamemidfix)-1, NULL, NULL);
-		evbuffer_add(buf, htmlenc, strlen(htmlenc));
+		evbuffer_add(buf, htmlenc.get(), strlen(htmlenc.get()));
 		evbuffer_add_reference(buf, filenamesuffix,
 				sizeof(filenamesuffix)-1, NULL, NULL);
-
-		free(htmlenc);
-		free(urlenc);
 	}
 
 	evbuffer_add_reference(buf, tail, sizeof(tail)-1, NULL, NULL);

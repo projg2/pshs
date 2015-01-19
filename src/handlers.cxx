@@ -5,6 +5,9 @@
 
 #include "config.h"
 
+#include <functional>
+#include <memory>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -124,7 +127,6 @@ void handle_file(struct evhttp_request* req, void* data)
 {
 	const struct callback_data* cb_data = (struct callback_data*) data;
 	const char* vpath = evhttp_request_get_uri(req);
-	char* dpath;
 	struct evhttp_connection* conn = evhttp_request_get_connection(req);
 
 	assert(vpath);
@@ -139,7 +141,9 @@ void handle_file(struct evhttp_request* req, void* data)
 
 	print_req(req);
 
-	dpath = evhttp_decode_uri(vpath);
+	std::unique_ptr<char, std::function<void(char*)>>
+		dpath{evhttp_decode_uri(vpath), free};
+
 	if (!dpath)
 	{
 		fprintf(stderr, "Unable to decode URI: %s\n", vpath);
@@ -147,14 +151,13 @@ void handle_file(struct evhttp_request* req, void* data)
 		return;
 	}
 
-	vpath = dpath;
+	vpath = dpath.get();
 	if (cb_data->prefix)
 	{
-		if (strncmp(dpath, cb_data->prefix, cb_data->prefix_len)
-				|| dpath[cb_data->prefix_len] != '/')
+		if (strncmp(vpath, cb_data->prefix, cb_data->prefix_len)
+				|| vpath[cb_data->prefix_len] != '/')
 		{
 			evhttp_send_error(req, 404, "Not Found");
-			free(dpath);
 			return;
 		}
 		vpath += cb_data->prefix_len + 1;
@@ -202,7 +205,6 @@ void handle_file(struct evhttp_request* req, void* data)
 					{
 						evhttp_send_error(req, 501, "Not Implemented");
 						close(fd);
-						free(dpath);
 						return;
 					}
 				}
@@ -216,7 +218,6 @@ void handle_file(struct evhttp_request* req, void* data)
 				{
 					evhttp_send_error(req, 416, "Requested Range Not Satisfiable");
 					close(fd);
-					free(dpath);
 					return;
 				}
 
@@ -249,7 +250,6 @@ void handle_file(struct evhttp_request* req, void* data)
 					evhttp_send_reply(req, 200, "OK", buf);
 
 				evbuffer_free(buf);
-				free(dpath);
 				return;
 			}
 
@@ -257,8 +257,6 @@ void handle_file(struct evhttp_request* req, void* data)
 		}
 		evhttp_send_error(req, 500, "Internal Server Error");
 	}
-
-	free(dpath);
 }
 
 /**
