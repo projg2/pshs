@@ -5,6 +5,10 @@
 
 #include "config.h"
 
+#include <functional>
+#include <memory>
+#include <stdexcept>
+
 #include <stdio.h>
 #ifdef HAVE_LIBQRENCODE
 #	include <qrencode.h>
@@ -19,12 +23,23 @@ static const int qr_margin = 3;
 void print_qrcode(const char* data)
 {
 #ifdef HAVE_LIBQRENCODE
-	QRcode* qr;
 	int x, y;
 
-	qr = QRcode_encodeString(data, 0, QR_ECLEVEL_L, QR_MODE_8, 1);
+	std::unique_ptr<QRcode, std::function<void(QRcode*)>>
+		qr{QRcode_encodeString(data, 0, QR_ECLEVEL_L, QR_MODE_8, 1), QRcode_free};
+
 	if (!qr)
-		return;
+	{
+		if (errno == ENOMEM)
+			throw std::bad_alloc();
+		else if (errno == ERANGE)
+		{
+			fputs("Unable to print QRcode, URL too long", stderr);
+			return;
+		}
+		else
+			throw std::runtime_error("QRcode_encodeString() failed");
+	}
 
 	/* add some margin to ease scanning */
 	for (y = 0; y < (qr_margin + 1) / 2; ++y)
@@ -74,7 +89,5 @@ void print_qrcode(const char* data)
 			fputs("\xe2\x96\x88", stderr);
 		fputc('\n', stderr);
 	}
-
-	QRcode_free(qr);
 #endif
 }
