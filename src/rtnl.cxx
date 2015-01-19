@@ -54,8 +54,8 @@ struct addr_search_data
  */
 static int store_addr(const struct sockaddr_nl* sa, struct nlmsghdr* n, void* data)
 {
-	struct addr_search_data* out = (struct addr_search_data*) data;
-	struct ifaddrmsg* addr = (struct ifaddrmsg*) NLMSG_DATA(n);
+	struct addr_search_data* out = static_cast<addr_search_data*>(data);
+	struct ifaddrmsg* addr = static_cast<ifaddrmsg*>(NLMSG_DATA(n));
 	struct rtattr*  rta_tb[IFA_MAX+1];
 
 	/* Based heavily on iproute2,
@@ -66,9 +66,11 @@ static int store_addr(const struct sockaddr_nl* sa, struct nlmsghdr* n, void* da
 	if (addr->ifa_family == AF_INET && rta_tb[IFA_LOCAL])
 	{
 		/* Get the actual IP address */
-		struct sockaddr_in* in = (struct sockaddr_in*) (void*) rta_tb[IFA_LOCAL];
+		struct sockaddr_in* in = static_cast<sockaddr_in*>(
+				static_cast<void*>(rta_tb[IFA_LOCAL]));
 		/* using char[4] allows us to ignore endianness */
-		unsigned char* binaddr = (unsigned char*) (void*) &(in->sin_addr.s_addr);
+		unsigned char* binaddr = static_cast<unsigned char*>(
+				static_cast<void*>(&(in->sin_addr.s_addr)));
 
 		enum is_local islocal = ISLOCAL_NO;
 

@@ -42,7 +42,7 @@
  */
 static void term_handler(evutil_socket_t fd, short what, void* data)
 {
-	struct event_base* evb = (struct event_base*) data;
+	struct event_base* evb = static_cast<event_base*>(data);
 	const char* sig = "unknown";
 
 	switch (fd)

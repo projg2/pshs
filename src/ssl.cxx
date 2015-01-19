@@ -47,7 +47,7 @@ static void key_progress_cb(int p, int n, void* arg)
 
 static struct bufferevent* https_bev_callback(struct event_base* evb, void* data)
 {
-	SSL_CTX* ctx = (SSL_CTX*) data;
+	SSL_CTX* ctx = static_cast<SSL_CTX*>(data);
 
 	return bufferevent_openssl_socket_new(evb, -1, SSL_new(ctx),
 			BUFFEREVENT_SSL_ACCEPTING, BEV_OPT_CLOSE_ON_FREE);
@@ -98,9 +98,11 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	name = X509_get_subject_name(x509.get());
 
 	X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC,
-			(const unsigned char*) "pshs", -1, -1, 0);
+			static_cast<const unsigned char*>(
+				static_cast<const void*>("pshs")), -1, -1, 0);
 	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
-			(const unsigned char*) extip, -1, -1, 0);
+			static_cast<const unsigned char*>(
+				static_cast<const void*>(extip)), -1, -1, 0);
 
 	/* Self-signed => issuer = subject */
 	X509_set_issuer_name(x509.get(), name);
