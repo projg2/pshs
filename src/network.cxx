@@ -6,6 +6,7 @@
 #include "config.h"
 
 #include <iostream>
+#include <string>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -69,8 +70,7 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 		if (upnp_enabled)
 		{
 			/* UPnP likes ASCII */
-			char strport[6];
-			sprintf(strport, "%d", port);
+			std::string strport{std::to_string(port)};
 
 			/* Set the port forwarding. */
 			ret = UPNP_AddPortMapping(
@@ -80,7 +80,7 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 #else
 					upnp_data.servicetype,
 #endif
-					strport, strport, lan_addr,
+					strport.c_str(), strport.c_str(), lan_addr,
 					"Pretty small HTTP server",
 					"tcp",
 #ifdef LIBMINIUPNPC_SO_8
@@ -129,8 +129,7 @@ ExternalIP::~ExternalIP()
 	if (upnp_enabled)
 	{
 		int ret;
-		char strport[6];
-		sprintf(strport, "%d", _port);
+		std::string strport{std::to_string(_port)};
 
 		/* Remove the port forwarding when done. */
 		ret = UPNP_DeletePortMapping(
@@ -140,7 +139,7 @@ ExternalIP::~ExternalIP()
 #else
 				upnp_data.servicetype,
 #endif
-				strport, "tcp", NULL);
+				strport.c_str(), "tcp", NULL);
 		if (ret != UPNPCOMMAND_SUCCESS)
 			std::cerr << "UPNP_DeletePortMapping() failed: " << strupnperror(ret)
 				<< std::endl;
