@@ -5,6 +5,8 @@
 
 #include "config.h"
 
+#include <iostream>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -87,7 +89,8 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 					NULL);
 			if (ret != UPNPCOMMAND_SUCCESS)
 			{
-				fprintf(stderr, "UPNP_AddPortMapping() failed: %s\n", strupnperror(ret));
+				std::cerr << "UPNP_AddPortMapping() failed: " << strupnperror(ret)
+					<< std::endl;
 				upnp_enabled = 0;
 				FreeUPNPUrls(&(upnp_urls));
 			} else
@@ -139,7 +142,8 @@ ExternalIP::~ExternalIP()
 #endif
 				strport, "tcp", NULL);
 		if (ret != UPNPCOMMAND_SUCCESS)
-			fprintf(stderr, "UPNP_DeletePortMapping() failed: %s\n", strupnperror(ret));
+			std::cerr << "UPNP_DeletePortMapping() failed: " << strupnperror(ret)
+				<< std::endl;
 		FreeUPNPUrls(&(upnp_urls));
 	}
 #endif

@@ -8,6 +8,8 @@
 #include "ssl.h"
 
 #include <functional>
+#include <iomanip>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -127,18 +129,20 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 		throw std::runtime_error("X509_digest() failed");
 
 	assert(i == sizeof(sha256_buf));
-	fputs("Certificate fingerprint:\n", stderr);
+	std::cerr << "Certificate fingerprint:\n"
+		<< std::setfill('0') << std::hex << std::uppercase;
 	for (i = 0; i < sizeof(sha256_buf); ++i)
 	{
-		fprintf(stderr, "%02hhX%c", sha256_buf[i],
-				-i % (sizeof(sha256_buf) / 2) == 1 ? '\n' : ' ');
+		std::cerr << std::setw(2) << static_cast<int>(sha256_buf[i])
+			<< ((-i % (sizeof(sha256_buf) / 2) == 1) ? '\n' : ' ');
 	}
+	std::cerr << std::dec;
 
 	enabled = true;
 
 #else
 
-	fputs("SSL/TLS support disabled at build time.\n", stderr);
+	std::cerr << "SSL/TLS support disabled at build time." << std::endl;
 
 #endif
 }

@@ -5,6 +5,8 @@
 
 #include "config.h"
 
+#include <iostream>
+
 #include <stdlib.h>
 
 #ifdef HAVE_LIBNETLINK
@@ -113,7 +115,7 @@ const char* get_rtnl_external_ip(void)
 
 	if (rtnl_open(&rth, 0) < 0)
 	{
-		fprintf(stderr, "rtnl_open() failed\n");
+		std::cerr << "rtnl_open() failed" << std::endl;
 		return NULL;
 	}
 
@@ -124,9 +126,10 @@ const char* get_rtnl_external_ip(void)
 #else
 		if (rtnl_dump_filter(&rth, store_addr, &out, NULL, NULL) < 0)
 #endif
-			fprintf(stderr, "rtnl_dump_filter() failed\n");
+			std::cerr << "rtnl_dump_filter() failed" << std::endl;
 	} else
-		fprintf(stderr, "rtnl_wilddump_request() failed: %s\n", strerror(errno));
+		std::cerr << "rtnl_wilddump_request() failed: " << strerror(errno)
+			<< std::endl;
 
 	rtnl_close(&rth);
 	return out.addr;

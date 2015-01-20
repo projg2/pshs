@@ -5,6 +5,8 @@
 
 #include "config.h"
 
+#include <iostream>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -32,12 +34,12 @@ ContentType::ContentType(void)
 #ifdef HAVE_LIBMAGIC
 	magic = magic_open(MAGIC_MIME);
 	if (!magic)
-		fprintf(stderr, "magic_open() failed: %s\n", strerror(errno));
+		std::cerr << "magic_open() failed: " << strerror(errno) << std::endl;
 	else
 	{
 		if (magic_load(magic, NULL))
 		{
-			fprintf(stderr, "magic_load() failed: %s\n", magic_error(magic));
+			std::cerr << "magic_open() failed: " << magic_error(magic) << std::endl;
 			magic_close(magic);
 			magic = NULL;
 		}
@@ -79,7 +81,8 @@ const char* ContentType::guess(int fd)
 		int dupfd = dup(fd);
 
 		if (dupfd == -1)
-			fprintf(stderr, "dup() failed: %s\n", strerror(errno));
+			std::cerr << "dup() failed (for Content-Type guessing): "
+				<< strerror(errno) << std::endl;
 		else
 		{
 			const char* ct = magic_descriptor(magic, dupfd);
@@ -87,7 +90,8 @@ const char* ContentType::guess(int fd)
 			close(dupfd);
 			if (ct)
 				return ct;
-			fprintf(stderr, "magic_descriptor() failed: %s\n", magic_error(magic));
+			std::cerr << "magic_descriptor() failed: " << magic_error(magic)
+				<< std::endl;
 		}
 	}
 #endif

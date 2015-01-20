@@ -6,6 +6,7 @@
 #include "config.h"
 
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -34,7 +35,7 @@ void print_qrcode(const char* data)
 			throw std::bad_alloc();
 		else if (errno == ERANGE)
 		{
-			fputs("Unable to print QRcode, URL too long", stderr);
+			std::cerr << "Unable to print QRcode, URL too long" << std::endl;
 			return;
 		}
 		else
@@ -45,8 +46,8 @@ void print_qrcode(const char* data)
 	for (y = 0; y < (qr_margin + 1) / 2; ++y)
 	{
 		for (x = 0; x < qr->width + 2 * qr_margin; ++x)
-			fputs("\xe2\x96\x88", stderr);
-		fputc('\n', stderr);
+			std::cerr << "\xe2\x96\x88";
+		std::cerr << '\n';
 	}
 
 	/* we need to encode two rows at once to get shape close to square */
@@ -56,7 +57,7 @@ void print_qrcode(const char* data)
 		unsigned char* row2 = row1 + qr->width;
 
 		for (x = 0; x < qr_margin; ++x)
-			fputs("\xe2\x96\x88", stderr);
+			std::cerr << "\xe2\x96\x88";
 
 		for (x = 0; x < qr->width; ++x)
 		{
@@ -65,19 +66,19 @@ void print_qrcode(const char* data)
 			unsigned char bit2 = y+1 < qr->width ? row2[x] & 1 : 0;
 
 			if (bit1 && bit2)
-				fputc(' ', stderr);
+				std::cerr << ' ';
 			else if (bit1)
-				fputs("\xe2\x96\x84", stderr); /* lower half block */
+				std::cerr << "\xe2\x96\x84"; /* lower half block */
 			else if (bit2)
-				fputs("\xe2\x96\x80", stderr); /* upper half block */
+				std::cerr << "\xe2\x96\x80"; /* upper half block */
 			else
-				fputs("\xe2\x96\x88", stderr); /* full block */
+				std::cerr << "\xe2\x96\x88"; /* full block */
 		}
 
 		for (x = 0; x < qr_margin; ++x)
-			fputs("\xe2\x96\x88", stderr);
+			std::cerr << "\xe2\x96\x88";
 
-		fputc('\n', stderr);
+		std::cerr << '\n';
 	}
 
 	/* add some margin to ease scanning
@@ -86,8 +87,8 @@ void print_qrcode(const char* data)
 	for (y = 0; y < (qr_margin + 1 - (qr->width % 2)) / 2; ++y)
 	{
 		for (x = 0; x < qr->width + 2 * qr_margin; ++x)
-			fputs("\xe2\x96\x88", stderr);
-		fputc('\n', stderr);
+			std::cerr << "\xe2\x96\x88";
+		std::cerr << std::endl;
 	}
 #endif
 }

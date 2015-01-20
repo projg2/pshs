@@ -7,6 +7,7 @@
 
 #include <array>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -54,8 +55,7 @@ static void term_handler(evutil_socket_t fd, short what, void* data)
 		case SIGUSR2: sig = "SIGUSR2"; break;
 	}
 
-	fprintf(stderr, "Terminating due to signal %s.\n", sig);
-
+	std::cerr << "Terminating due to signal " << sig << ".\n";
 	event_base_loopbreak(evb);
 }
 
@@ -73,8 +73,6 @@ const struct option opts[] =
 };
 
 const char opt_help[] =
-"Usage: %s [options] file [...]\n"
-"\n"
 "Options:\n"
 "    --help, -h           print this help message\n"
 "    --version, -V        print program version and exit\n"
@@ -121,7 +119,7 @@ int main(int argc, char* argv[])
 				/* port needs to be uint16 */
 				if (*tmp || !port || port >= 0xffff)
 				{
-					fprintf(stderr, "Invalid port number: %s\n", optarg);
+					std::cerr << "Invalid port number: " << optarg << "\n";
 					return 1;
 				}
 				break;
@@ -135,10 +133,11 @@ int main(int argc, char* argv[])
 				upnp = 0;
 				break;
 			case 'V':
-				printf("%s\n", PACKAGE_STRING);
+				std::cout << PACKAGE_STRING "\n";
 				return 0;
 			default:
-				printf(opt_help, argv[0]);
+				std::cout << "Usage: " << argv[0] << " [options] file [...]\n\n"
+					<< opt_help;
 				return 0;
 		}
 	}
@@ -146,7 +145,8 @@ int main(int argc, char* argv[])
 	/* no files supplied */
 	if (argc == optind)
 	{
-		fprintf(stderr, opt_help, argv[0]);
+		std::cerr << "Usage: " << argv[0] << " [options] file [...]\n\n"
+			<< opt_help;
 		return 1;
 	}
 
@@ -167,18 +167,12 @@ int main(int argc, char* argv[])
 	std::unique_ptr<event_base, std::function<void(event_base*)>>
 		evb{event_base_new(), event_base_free};
 	if (!evb)
-	{
-		fprintf(stderr, "event_base_new() failed.\n");
-		return 1;
-	}
+		throw std::runtime_error("event_base_new() failed");
 
 	std::unique_ptr<evhttp, std::function<void(evhttp*)>>
 		http{evhttp_new(evb.get()), evhttp_free};
 	if (!http)
-	{
-		fprintf(stderr, "evhttp_new() failed.\n");
-		return 1;
-	}
+		throw std::runtime_error("evhttp_new() failed");
 	/* we're just a small download server, GET & HEAD should handle it all */
 	evhttp_set_allowed_methods(http.get(), EVHTTP_REQ_GET | EVHTTP_REQ_HEAD);
 	/* generic callback - file download */
@@ -204,8 +198,8 @@ int main(int argc, char* argv[])
 
 	if (evhttp_bind_socket(http.get(), bindip, port))
 	{
-		fprintf(stderr, "evhttp_bind_socket(%s, %d) failed.\n",
-				bindip, port);
+		std::cerr << "Unable to bind socket to " << bindip
+			<< ':' << port << "\n";
 		return 1;
 	}
 
@@ -223,8 +217,8 @@ int main(int argc, char* argv[])
 	ExternalIP extip{port, bindip, upnp};
 	SSLMod ssl_mod(http.get(), extip.addr, ssl);
 
-	fprintf(stderr, "Ready to share %d files.\n", argc - optind);
-	fprintf(stderr, "Bound to %s:%d.\n", bindip, port);
+	std::cerr << "Ready to share " << argc - optind << " files.\n"
+		"Bound to " << bindip << ':' << port << '.' << std::endl;
 	if (extip.addr)
 	{
 		std::stringstream server_uri;
@@ -243,7 +237,7 @@ int main(int argc, char* argv[])
 			server_uri << urlenc.get();
 		}
 
-		fprintf(stderr, "Server reachable at: %s\n", server_uri.str().c_str());
+		std::cerr << "Server reachable at: " << server_uri.str() << std::endl;
 		print_qrcode(server_uri.str().c_str());
 	}
 
@@ -255,15 +249,15 @@ int main(int argc, char* argv[])
 	{
 		sigevents[i] = {evsignal_new(evb.get(), sigs[i], term_handler, evb.get()), event_free};
 		if (!sigevents[i])
-			fprintf(stderr, "evsignal_new(%d) failed.\n", sigs[i]);
+			std::cerr << "evsignal_new(" << sigs[i] << ") failed." << std::endl;
 		else;
 			event_add(sigevents[i].get(), NULL);
 	}
 
 	/* ignore SIGPIPE in case of interrupted connection */
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-		fputs("warning: unable to override SIGPIPE, may terminate"
-				"on interrupted connections.", stderr);
+		std::cerr << "warning: unable to override SIGPIPE, may terminate"
+				"on interrupted connections." << std::endl;
 
 	/* run the loop */
 	event_base_dispatch(evb.get());

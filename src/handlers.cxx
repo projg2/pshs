@@ -6,8 +6,10 @@
 #include "config.h"
 
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -93,7 +95,7 @@ static void print_req(struct evhttp_request* req)
 
 	assert(conn);
 	evhttp_connection_get_peer(conn, &addr, &port);
-	printf("[%s:%d] %s\n", addr, port, uri);
+	std::cout << '[' << addr << ':' << port << "] " << uri << std::endl;
 }
 
 /**
@@ -110,7 +112,7 @@ void handle_close(struct evhttp_connection* conn, void* data)
 
 	assert(conn);
 	evhttp_connection_get_peer(conn, &addr, &port);
-	printf("[%s:%d] connection closed\n", addr, port);
+	std::cout << '[' << addr << ':' << port << "] connection closed" << std::endl;
 }
 
 /**
@@ -147,7 +149,7 @@ void handle_file(struct evhttp_request* req, void* data)
 
 	if (!dpath)
 	{
-		fprintf(stderr, "Unable to decode URI: %s\n", vpath);
+		std::cerr << "Unable to decode URI: " << vpath << std::endl;
 		evhttp_send_error(req, 500, "Internal Server Error");
 		return;
 	}
@@ -171,7 +173,8 @@ void handle_file(struct evhttp_request* req, void* data)
 		int fd = open(vpath, O_RDONLY);
 
 		if (fd == -1)
-			fprintf(stderr, "open(%s) failed: %s\n", vpath, strerror(errno));
+			std::cerr << "open() failed for " << vpath << ": "
+				<< strerror(errno) << std::endl;
 		else
 		{
 			struct stat st;
@@ -179,9 +182,11 @@ void handle_file(struct evhttp_request* req, void* data)
 			/* we need to have a regular file here,
 			 * with static Content-Length */
 			if (fstat(fd, &st))
-				fprintf(stderr, "fstat(%s) failed: %s\n", vpath, strerror(errno));
+				std::cerr << "fstat() failed for " << vpath << ": "
+					<< strerror(errno) << std::endl;
 			else if (!S_ISREG(st.st_mode))
-				fprintf(stderr, "fstat(%s) says it is not a regular file\n", vpath);
+				std::cerr << "fstat() says that " << vpath
+					<< "is not a regular file" << std::endl;
 			else
 			{
 				struct evbuffer* buf = evbuffer_new();
@@ -230,7 +235,7 @@ void handle_file(struct evhttp_request* req, void* data)
 				/* Good Content-Type is nice for users. */
 				if (evhttp_add_header(headers, "Content-Type",
 							cb_data->ct->guess(fd)))
-					fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
+					throw std::bad_alloc();
 
 				/* Send the file. */
 #if 0 /* breaks ssl support */
@@ -244,7 +249,7 @@ void handle_file(struct evhttp_request* req, void* data)
 					rangebuf << "bytes " << first << '-' << last << '/' << size;
 
 					if (evhttp_add_header(headers, "Content-Range", rangebuf.str().c_str()))
-						fprintf(stderr, "evhttp_add_header(Content-Range) failed\n");
+						throw std::bad_alloc();
 					evhttp_send_reply(req, 206, "Partial Content", buf);
 				} else
 					evhttp_send_reply(req, 200, "OK", buf);
@@ -278,7 +283,7 @@ void handle_index(struct evhttp_request* req, void* data)
 	evhttp_add_header(headers, "Server", PACKAGE_NAME "/" PACKAGE_VERSION);
 	if (evhttp_add_header(headers, "Content-Type",
 				"text/html; charset=utf-8"))
-		fprintf(stderr, "evhttp_add_header(Content-Type) failed\n");
+		throw std::bad_alloc();
 
 	generate_index(buf, cb_data->files);
 
