@@ -82,7 +82,7 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 #endif
 					strport.c_str(), strport.c_str(), lan_addr,
 					"Pretty small HTTP server",
-					"tcp",
+					"TCP",
 #ifdef LIBMINIUPNPC_SO_8
 					NULL,
 #endif
@@ -139,7 +139,7 @@ ExternalIP::~ExternalIP()
 #else
 				upnp_data.servicetype,
 #endif
-				strport.c_str(), "tcp", NULL);
+				strport.c_str(), "TCP", NULL);
 		if (ret != UPNPCOMMAND_SUCCESS)
 			std::cerr << "UPNP_DeletePortMapping() failed: " << strupnperror(ret)
 				<< std::endl;
