@@ -93,7 +93,8 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 					<< std::endl;
 				upnp_enabled = 0;
 				FreeUPNPUrls(&(upnp_urls));
-			} else
+			}
+			else
 			{
 				static char extip[16];
 
@@ -106,7 +107,10 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 						upnp_data.servicetype,
 #endif
 						extip) == UPNPCOMMAND_SUCCESS)
+				{
 					addr = extip;
+					return;
+				}
 			}
 		} else if (ret)
 			FreeUPNPUrls(&(upnp_urls));
