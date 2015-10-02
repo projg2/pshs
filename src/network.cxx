@@ -17,11 +17,12 @@
 #	include <miniupnpc/upnpcommands.h>
 #	include <miniupnpc/upnperrors.h>
 
-#	ifdef UPNPCOMMAND_HTTP_ERROR
-#		define LIBMINIUPNPC_SO_5
-#	endif
-#	ifdef UPNPDISCOVER_SUCCESS /* miniupnpc-1.6 */
-#		define LIBMINIUPNPC_SO_8
+#	ifndef MINIUPNPC_API_VERSION
+#		ifdef UPNPCOMMAND_HTTP_ERROR
+#			define MINIUPNPC_API_VERSION 5
+#		else
+#			define MINIUPNPC_API_VERSION 0
+#		endif
 #	endif
 #endif
 
@@ -54,7 +55,7 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 	/* use UPnP only if user wants to */
 	if (use_upnp)
 	{
-#ifdef LIBMINIUPNPC_SO_8
+#if MINIUPNPC_API_VERSION >= 8
 		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0, 0, NULL);
 #else
 		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0);
@@ -75,7 +76,7 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 			/* Set the port forwarding. */
 			ret = UPNP_AddPortMapping(
 					upnp_urls.controlURL,
-#ifdef LIBMINIUPNPC_SO_5
+#if MINIUPNPC_API_VERSION >= 5
 					upnp_data.first.servicetype,
 #else
 					upnp_data.servicetype,
@@ -83,7 +84,7 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 					strport.c_str(), strport.c_str(), lan_addr,
 					"Pretty small HTTP server",
 					"TCP",
-#ifdef LIBMINIUPNPC_SO_8
+#if MINIUPNPC_API_VERSION >= 8
 					NULL,
 #endif
 					NULL);
@@ -101,7 +102,7 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 				/* And then get external IP. */
 				if (UPNP_GetExternalIPAddress(
 						upnp_urls.controlURL,
-#ifdef LIBMINIUPNPC_SO_5
+#if MINIUPNPC_API_VERSION >= 5
 						upnp_data.first.servicetype,
 #else
 						upnp_data.servicetype,
@@ -138,7 +139,7 @@ ExternalIP::~ExternalIP()
 		/* Remove the port forwarding when done. */
 		ret = UPNP_DeletePortMapping(
 				upnp_urls.controlURL,
-#ifdef LIBMINIUPNPC_SO_5
+#if MINIUPNPC_API_VERSION >= 5
 				upnp_data.first.servicetype,
 #else
 				upnp_data.servicetype,
