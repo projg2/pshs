@@ -55,7 +55,9 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 	/* use UPnP only if user wants to */
 	if (use_upnp)
 	{
-#if MINIUPNPC_API_VERSION >= 8
+#if MINIUPNPC_API_VERSION >= 14
+		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0, 0, 2, NULL);
+#elif MINIUPNPC_API_VERSION >= 8
 		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0, 0, NULL);
 #else
 		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0);
