@@ -68,6 +68,7 @@ const struct option opts[] =
 	{ "port", required_argument, NULL, 'p' },
 	{ "ssl", no_argument, NULL, 's' },
 	{ "no-upnp", no_argument, NULL, 'U' },
+	{ "redirect", no_argument, NULL, 'r' },
 
 	{ 0, 0, 0, 0 }
 };
@@ -87,7 +88,8 @@ const char opt_help[] =
 "    --port N, -p N       set port to listen on (default: random)\n"
 "    --prefix PFX, -P PFX require all URLs to start with the prefix PFX\n"
 "    --ssl, -s            serve files over HTTPS\n"
-"    --no-upnp, -U        don't use UPNP to find the external IP address\n";
+"    --no-upnp, -U        don't use UPNP to find the external IP address\n"
+"    --redirect, -r       redirect / to a single provided file\n";
 
 int main(int argc, char* argv[])
 {
@@ -101,6 +103,7 @@ int main(int argc, char* argv[])
 	unsigned int port = 0;
 	int ssl = 0;
 	int upnp = 1;
+	bool redirect = false;
 
 	/* main variables */
 	const std::array<int, 5> sigs{ SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2 };
@@ -137,6 +140,9 @@ int main(int argc, char* argv[])
 			case 'V':
 				std::cout << PACKAGE_STRING "\n";
 				return 0;
+			case 'r':
+				redirect = true;
+				break;
 			default:
 				std::cout << "Usage: " << argv[0] << " [options] file [...]\n\n"
 					<< opt_help;
@@ -152,12 +158,22 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	/* redirect only supporst a single file */
+	if ((argc == optind - 1) && redirect)
+	{
+		std::cerr << "--redirect only works with a single file\n";
+		return 1;
+	}
+
 	/* Remove ./ prefixes from filenames, they're known to cause trouble. */
 	for (int i = optind; i < argc; ++i)
 	{
 		if (argv[i][0] == '.' && argv[i][1] == '/')
 			argv[i] += 2;
 	}
+
+	void (*handle_index)(evhttp_request*, void*) = redirect
+		? handle_index_with_redirect : handle_index_with_list;
 
 	srandom(time(NULL));
 

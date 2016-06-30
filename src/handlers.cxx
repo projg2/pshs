@@ -271,7 +271,7 @@ void handle_file(struct evhttp_request* req, void* data)
  *
  * Handle index (/) request. Send back the HTML filelist.
  */
-void handle_index(struct evhttp_request* req, void* data)
+void handle_index_with_list(struct evhttp_request* req, void* data)
 {
 	const struct callback_data* cb_data = static_cast<callback_data*>(data);
 	struct evbuffer* buf = evbuffer_new();
@@ -288,5 +288,28 @@ void handle_index(struct evhttp_request* req, void* data)
 	generate_index(buf, cb_data->files);
 
 	evhttp_send_reply(req, 200, "OK", buf);
+	evbuffer_free(buf);
+}
+
+/**
+ * handle_index_with_redirect
+ * @req: the request object
+ * @data: served filelist
+ *
+ * Handle index (/) request.  Redirects to the only file in the file list.
+ */
+void handle_index_with_redirect(struct evhttp_request* req, void* data)
+{
+	const struct callback_data* cb_data = static_cast<callback_data*>(data);
+	struct evbuffer* buf = evbuffer_new();
+	struct evkeyvalq* headers = evhttp_request_get_output_headers(req);
+
+	print_req(req);
+
+	assert(headers);
+	evhttp_add_header(headers, "Server", PACKAGE_NAME "/" PACKAGE_VERSION);
+	evhttp_add_header(headers, "Location", cb_data->files[0]);
+
+	evhttp_send_reply(req, 302, "Found", buf);
 	evbuffer_free(buf);
 }

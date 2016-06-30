@@ -24,6 +24,7 @@ struct callback_data
 void init_charset(const char* charset);
 
 void handle_file(struct evhttp_request* req, void* data);
-void handle_index(struct evhttp_request* req, void* data);
+void handle_index_with_list(struct evhttp_request* req, void* data);
+void handle_index_with_redirect(struct evhttp_request* neq, void *data);
 
 #endif /*_PSHS_HANDLERS_H*/
