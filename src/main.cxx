@@ -87,8 +87,6 @@ const char opt_help[] =
 "    --bind IP, -b IP     bind the server to IP address\n"
 "    --port N, -p N       set port to listen on (default: random)\n"
 "    --prefix PFX, -P PFX require all URLs to start with the prefix PFX\n"
-"    --ssl, -s            serve files over HTTPS\n"
-"    --no-upnp, -U        don't use UPNP to find the external IP address\n"
 "    --redirect, -r       redirect / to a single provided file\n";
 
 int main(int argc, char* argv[])
