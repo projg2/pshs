@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
 
 	setlocale(LC_ALL, "");
 
-	while ((opt = getopt_long(argc, argv, "hVb:p:P:sU", opts, NULL)) != -1)
+	while ((opt = getopt_long(argc, argv, "hVb:p:P:sUr", opts, NULL)) != -1)
 	{
 		switch (opt)
 		{
