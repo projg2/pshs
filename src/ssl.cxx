@@ -22,6 +22,7 @@
 #	include <event2/bufferevent_ssl.h>
 
 #	include <openssl/asn1.h>
+#	include <openssl/bn.h>
 #	include <openssl/evp.h>
 #	include <openssl/rsa.h>
 #	include <openssl/ssl.h>
@@ -31,8 +32,15 @@
 #ifdef HAVE_LIBSSL
 static std::unique_ptr<SSL_CTX, std::function<void(SSL_CTX*)>> ssl;
 
+#if OPENSSL_VERSION_NUMBER < 0x10000000L
 static void key_progress_cb(int p, int n, void* arg)
+#else
+static int key_progress_cb(int p, int n, BN_GENCB* cb)
+#endif
 {
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+	int rc = 1;
+#endif
 	char c;
 
 	switch (p)
@@ -42,9 +50,16 @@ static void key_progress_cb(int p, int n, void* arg)
 		case 2: c = '*'; break;
 		case 3: c = '\n'; break;
 		default: c = '?';
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+			rc = 0;
+#endif
 	}
 
 	fputc(c, stderr);
+
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+	return rc;
+#endif
 }
 
 static struct bufferevent* https_bev_callback(struct event_base* evb, void* data)
@@ -68,22 +83,45 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	unsigned char sha256_buf[32];
 	unsigned int i;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSL_load_error_strings();
 	SSL_library_init();
+#endif
 
 	std::unique_ptr<EVP_PKEY, std::function<void(EVP_PKEY*)>>
 		pkey{EVP_PKEY_new(), EVP_PKEY_free};
 	std::unique_ptr<X509, std::function<void(X509*)>>
 		x509{X509_new(), X509_free};
 	/* XXX: settable params */
+
+#if OPENSSL_VERSION_NUMBER < 0x10000000L
 	std::unique_ptr<RSA, std::function<void(RSA*)>>
 		rsa{RSA_generate_key(2048, RSA_F4, key_progress_cb, 0), RSA_free};
 
 	if (!pkey || !x509 || !rsa)
 		throw std::bad_alloc();
+#else
+	std::unique_ptr<RSA, std::function<void(RSA*)>>
+		rsa{RSA_new(), RSA_free};
+	std::unique_ptr<BIGNUM, std::function<void(BIGNUM*)>>
+		e{BN_new(), BN_free};
+	std::unique_ptr<BN_GENCB, std::function<void(BN_GENCB*)>>
+		cb{BN_GENCB_new(), BN_GENCB_free};
 
-	if (!EVP_PKEY_assign_RSA(pkey.get(), rsa.get()))
-		throw std::runtime_error("EVP_PKEY_assign_RSA() failed");
+	if (!pkey || !x509 || !rsa || !e || !cb)
+		throw std::bad_alloc();
+
+	if (!BN_set_word(e.get(), RSA_F4))
+		throw std::runtime_error("BN_set_word() failed");
+
+	BN_GENCB_set(cb.get(), key_progress_cb, NULL);
+
+	if (!RSA_generate_key_ex(rsa.get(), 2048, e.get(), cb.get()))
+		throw std::runtime_error("RSA_generate_key_ex() failed");
+#endif
+
+	if (!EVP_PKEY_set1_RSA(pkey.get(), rsa.get()))
+		throw std::runtime_error("EVP_PKEY_set1_RSA() failed");
 
 	if (!X509_set_pubkey(x509.get(), pkey.get()))
 		throw std::runtime_error("X509_set_pubkey() failed");
@@ -93,8 +131,13 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	/* Semi-random serial number to avoid repetitions */
 	ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), time(NULL));
 	/* Valid for 24 hours */
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
 	X509_gmtime_adj(X509_get_notAfter(x509.get()), 60*60*24);
+#else
+	X509_gmtime_adj(X509_getm_notBefore(x509.get()), 0);
+	X509_gmtime_adj(X509_getm_notAfter(x509.get()), 60*60*24);
+#endif
 
 	/* Set subject & issuer */
 	name = X509_get_subject_name(x509.get());
@@ -112,7 +155,11 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	if (!X509_sign(x509.get(), pkey.get(), EVP_sha512()))
 		throw std::runtime_error("X509_sign() failed");
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	ssl = {SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free};
+#else
+	ssl = {SSL_CTX_new(TLS_server_method()), SSL_CTX_free};
+#endif
 	if (!ssl)
 		throw std::bad_alloc();
 
