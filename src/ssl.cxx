@@ -118,8 +118,8 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 		throw std::runtime_error("RSA_generate_key_ex() failed");
 # endif
 
-	if (!EVP_PKEY_assign_RSA(pkey.get(), rsa.get()))
-		throw std::runtime_error("EVP_PKEY_assign_RSA() failed");
+	if (!EVP_PKEY_set1_RSA(pkey.get(), rsa.get()))
+		throw std::runtime_error("EVP_PKEY_set1_RSA() failed");
 
 	if (!X509_set_pubkey(x509.get(), pkey.get()))
 		throw std::runtime_error("X509_set_pubkey() failed");
