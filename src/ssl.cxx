@@ -32,13 +32,13 @@
 #ifdef HAVE_LIBSSL
 static std::unique_ptr<SSL_CTX, std::function<void(SSL_CTX*)>> ssl;
 
-#if OPENSSL_VERSION_NUMBER < 0x10000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 static void key_progress_cb(int p, int n, void* arg)
 #else
 static int key_progress_cb(int p, int n, BN_GENCB* cb)
 #endif
 {
-#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 	int rc = 1;
 #endif
 	char c;
@@ -50,14 +50,14 @@ static int key_progress_cb(int p, int n, BN_GENCB* cb)
 		case 2: c = '*'; break;
 		case 3: c = '\n'; break;
 		default: c = '?';
-#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 			rc = 0;
 #endif
 	}
 
 	fputc(c, stderr);
 
-#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 	return rc;
 #endif
 }
@@ -94,7 +94,7 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 		x509{X509_new(), X509_free};
 	/* XXX: settable params */
 
-#if OPENSSL_VERSION_NUMBER < 0x10000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	std::unique_ptr<RSA, std::function<void(RSA*)>>
 		rsa{RSA_generate_key(2048, RSA_F4, key_progress_cb, 0), RSA_free};
 
