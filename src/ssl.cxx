@@ -32,13 +32,17 @@
 #ifdef HAVE_LIBSSL
 static std::unique_ptr<SSL_CTX, std::function<void(SSL_CTX*)>> ssl;
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+#	define HAVE_OPENSSL11_API
+#endif
+
+#ifndef HAVE_OPENSSL11_API
 static void key_progress_cb(int p, int n, void* arg)
 #else
 static int key_progress_cb(int p, int n, BN_GENCB* cb)
 #endif
 {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#ifdef HAVE_OPENSSL11_API
 	int rc = 1;
 #endif
 	char c;
@@ -50,14 +54,14 @@ static int key_progress_cb(int p, int n, BN_GENCB* cb)
 		case 2: c = '*'; break;
 		case 3: c = '\n'; break;
 		default: c = '?';
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#ifdef HAVE_OPENSSL11_API
 			rc = 0;
 #endif
 	}
 
 	fputc(c, stderr);
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#ifdef HAVE_OPENSSL11_API
 	return rc;
 #endif
 }
@@ -83,7 +87,7 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	unsigned char sha256_buf[32];
 	unsigned int i;
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#ifndef HAVE_OPENSSL11_API
 	SSL_load_error_strings();
 	SSL_library_init();
 #endif
@@ -94,7 +98,7 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 		x509{X509_new(), X509_free};
 	/* XXX: settable params */
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#ifndef HAVE_OPENSSL11_API
 	std::unique_ptr<RSA, std::function<void(RSA*)>>
 		rsa{RSA_generate_key(2048, RSA_F4, key_progress_cb, 0), RSA_free};
 
@@ -131,7 +135,7 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	/* Semi-random serial number to avoid repetitions */
 	ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), time(NULL));
 	/* Valid for 24 hours */
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#ifndef HAVE_OPENSSL11_API
 	X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
 	X509_gmtime_adj(X509_get_notAfter(x509.get()), 60*60*24);
 #else
@@ -155,7 +159,7 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	if (!X509_sign(x509.get(), pkey.get(), EVP_sha512()))
 		throw std::runtime_error("X509_sign() failed");
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#ifndef HAVE_OPENSSL11_API
 	ssl = {SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free};
 #else
 	ssl = {SSL_CTX_new(TLS_server_method()), SSL_CTX_free};
