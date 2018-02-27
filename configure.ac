@@ -55,6 +55,9 @@ AS_IF([test x"$enable_netlink" != x"no"], [
 			AC_DEFINE([HAVE_RTNL_DUMP_FILTER_3ARG], [1],
 				[Define if your rtnl_dump_filter() takes three arguments])
 		])
+
+		# newer versions of libnetlink need linking to libmnl
+		PKG_CHECK_MODULES([LIBMNL], [libmnl], [], [])
 	])
 ])
 
