@@ -32,7 +32,8 @@
 #ifdef HAVE_LIBSSL
 static std::unique_ptr<SSL_CTX, std::function<void(SSL_CTX*)>> ssl;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && \
+		(!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x2070000fL)
 #	define HAVE_OPENSSL11_API
 #endif
 
