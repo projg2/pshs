@@ -99,8 +99,8 @@ int main(int argc, char* argv[])
 	const char* prefix = 0;
 	const char* bindip = "0.0.0.0";
 	unsigned int port = 0;
-	int ssl = 0;
-	int upnp = 1;
+	int ssl = false;
+	bool upnp = true;
 	bool redirect = false;
 
 	/* main variables */
@@ -130,10 +130,10 @@ int main(int argc, char* argv[])
 				prefix = optarg;
 				break;
 			case 's':
-				ssl = 1;
+				ssl = true;
 				break;
 			case 'U':
-				upnp = 0;
+				upnp = false;
 				break;
 			case 'V':
 				std::cout << PACKAGE_STRING "\n";
