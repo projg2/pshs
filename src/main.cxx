@@ -253,7 +253,7 @@ int main(int argc, char* argv[])
 			server_uri << urlenc.get();
 		}
 
-		std::cerr << "Server reachable at:" << server_uri.str() << std::endl;
+		std::cerr << "Server reachable at: " << server_uri.str() << std::endl;
 		print_qrcode(server_uri.str().c_str());
 	}
 
