@@ -241,7 +241,7 @@ int main(int argc, char* argv[])
 		server_uri << "http";
 		if (ssl)
 			server_uri << 's';
-		server_uri << "://" << extip.addr << ':' << port << '/';
+		server_uri << "://" << "[" << extip.addr << "]"  << ':' << port << '/';
 		if (prefix)
 			server_uri << prefix << '/';
 		if (argc - optind == 1)
@@ -253,7 +253,7 @@ int main(int argc, char* argv[])
 			server_uri << urlenc.get();
 		}
 
-		std::cerr << "Server reachable at: [" << server_uri.str() << "]" << std::endl;
+		std::cerr << "Server reachable at:" << server_uri.str() << std::endl;
 		print_qrcode(server_uri.str().c_str());
 	}
 
