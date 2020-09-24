@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
 		
 		if (strpbrk(extip.addr, ":") == NULL)
 			server_uri << "://" << extip.addr << ':' << port << '/';
-		else; 
+		else 
 			server_uri << "://" << "[" << extip.addr << "]"  << ':' << port << '/';
 		
 		if (prefix)
