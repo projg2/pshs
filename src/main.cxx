@@ -241,7 +241,12 @@ int main(int argc, char* argv[])
 		server_uri << "http";
 		if (ssl)
 			server_uri << 's';
-		server_uri << "://" << "[" << extip.addr << "]"  << ':' << port << '/';
+		
+		if (strchr(extip.addr, ":") == NULL)
+			server_uri << "://" << extip.addr << ':' << port << '/';
+		else; 
+			server_uri << "://" << "[" << extip.addr << "]"  << ':' << port << '/';
+		
 		if (prefix)
 			server_uri << prefix << '/';
 		if (argc - optind == 1)
