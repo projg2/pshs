@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
 
 	/* default config */
 	const char* prefix = 0;
-	const char* bindip = "0.0.0.0";
+	const char* bindip = NULL;
 	unsigned int port = 0;
 	int ssl = false;
 	bool upnp = true;
@@ -212,7 +212,17 @@ int main(int argc, char* argv[])
 		port = random() % 0x7bff + 0x400;
 	}
 
-	if (evhttp_bind_socket(http.get(), bindip, port))
+	bool bound = false;
+	if (!bindip)
+	{
+		/* try :: first, fall back to 0.0.0.0 */
+		bindip = "::";
+		if (!evhttp_bind_socket(http.get(), bindip, port))
+			bound = true;
+		else
+			bindip = "0.0.0.0";
+	}
+	if (!bound && evhttp_bind_socket(http.get(), bindip, port))
 	{
 		std::cerr << "Unable to bind socket to " << bindip
 			<< ':' << port << "\n";
