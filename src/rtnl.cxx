@@ -35,12 +35,13 @@ enum is_local { /* most preferred first */
 
 /**
  * get_rtnl_external_ip
+ * @bindip: IP the server is bound to
  *
  * Try to get external IP from local network interfaces using netlink.
  *
  * Returns: best IP address found on the system, in a static buffer
  */
-const char* get_rtnl_external_ip(void)
+const char* get_rtnl_external_ip(const char* bindip)
 {
 	const char* out = NULL;
 
@@ -53,6 +54,8 @@ const char* get_rtnl_external_ip(void)
 		return NULL;
 	}
 
+	/* want IPv6 only if we're bound to IPv6 socket */
+	bool want_ipv6 = !!strchr(bindip, ':');
 	struct sockaddr* curr_addr = NULL;
 	enum is_local curr_islocal = ISLOCAL_MAX;
 
@@ -62,6 +65,7 @@ const char* get_rtnl_external_ip(void)
 			continue;
 
 		int family = addr->ifa_addr->sa_family;
+		enum is_local islocal;
 		if (family == AF_INET)
 		{
 			struct sockaddr_in* in = static_cast<sockaddr_in*>(
@@ -70,7 +74,7 @@ const char* get_rtnl_external_ip(void)
 			unsigned char* binaddr = static_cast<unsigned char*>(
 					static_cast<void*>(&(in->sin_addr.s_addr)));
 
-			enum is_local islocal = ISLOCAL_NO;
+			islocal = ISLOCAL_NO;
 			if (binaddr[0] == 127) /* localhost */
 				islocal = ISLOCAL_HOST;
 			else if (binaddr[0] == 10)
@@ -81,17 +85,46 @@ const char* get_rtnl_external_ip(void)
 				islocal = ISLOCAL_APIPA;
 			else if (binaddr[0] == 172 && binaddr[1] >= 16 && binaddr[1] < 32)
 				islocal = ISLOCAL_NET;
-
-			/* prefer global addresses */
-			if (islocal < curr_islocal)
-			{
-				curr_addr = addr->ifa_addr;
-				curr_islocal = islocal;
-			}
 		}
 		else if (family == AF_INET6)
 		{
-			// TODO: IPv6
+			if (!want_ipv6)
+				continue;
+
+			struct sockaddr_in6* in = static_cast<sockaddr_in6*>(
+					static_cast<void*>(addr->ifa_addr));
+			unsigned char* binaddr = in->sin6_addr.s6_addr;
+
+			islocal = ISLOCAL_HOST;
+			// check for ::1
+			for (int i = 0; i < 15; ++i)
+			{
+				if (binaddr[i] != 0)
+				{
+					islocal = ISLOCAL_NO;
+					break;
+				}
+			}
+			if (binaddr[15] != 1)
+				islocal = ISLOCAL_NO;
+			if (islocal != ISLOCAL_HOST && binaddr[0] == 0xFE
+					&& (binaddr[1] & 0xC0) == 0x80)
+				islocal = ISLOCAL_APIPA;
+		}
+		else
+			continue;
+
+		/* prefer global addresses, and arbitrarily prefer IPv6 */
+		bool update = false;
+		if (islocal < curr_islocal)
+			update = true;
+		else if (islocal == curr_islocal && family == AF_INET6
+				&& curr_addr->sa_family == AF_INET)
+			update = true;
+		if (update)
+		{
+			curr_addr = addr->ifa_addr;
+			curr_islocal = islocal;
 		}
 	}
 

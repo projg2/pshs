@@ -20,7 +20,7 @@ public:
 	const char* addr;
 };
 
-const char* get_rtnl_external_ip(void);
+const char* get_rtnl_external_ip(const char* bindip);
 
 struct IPAddrPrinter
 {
