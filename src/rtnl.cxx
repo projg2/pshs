@@ -23,7 +23,7 @@
 
 #include "network.h"
 
-#if HAVE_GETIFADDRS
+#ifdef HAVE_GETIFADDRS
 enum is_local { /* most preferred first */
 	ISLOCAL_NO, /* global address */
 	ISLOCAL_NET, /* address reserved for local network */

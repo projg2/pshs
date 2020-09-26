@@ -1,0 +1,20 @@
+option('libmagic',
+       type: 'feature',
+       description: 'Use libmagic to detect Content-Type for served files',
+       value: 'auto')
+option('netlink',
+       type: 'feature',
+       description: 'Use libnetlink to find IP addresses of interfaces',
+       value: 'auto')
+option('qrencode',
+       type: 'feature',
+       description: 'Use qrencode to print QRcode for sharing URL',
+       value: 'auto')
+option('ssl',
+       type: 'feature',
+       description: 'Enable SSL/TLS support',
+       value: 'auto')
+option('upnp',
+       type: 'feature',
+       description: 'Use libminiupnpc to forward ports via UPnP',
+       value: 'auto')
