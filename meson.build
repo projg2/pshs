@@ -35,13 +35,16 @@ conf_data.set('HAVE_LIBQRENCODE', qrencode.found())
 
 configure_file(output: 'config.h', configuration: conf_data)
 
-executable('pshs', [
-  'src/main.cxx',
-  'src/content-type.cxx',
-  'src/index.cxx',
-  'src/handlers.cxx',
-  'src/network.cxx',
-  'src/rtnl.cxx',
-  'src/qrencode.cxx',
-  'src/ssl.cxx',
-], dependencies: [libevent, magic, qrencode, upnp, crypto, ssl, libevent_ssl])
+executable('pshs',
+  [
+    'src/main.cxx',
+    'src/content-type.cxx',
+    'src/index.cxx',
+    'src/handlers.cxx',
+    'src/network.cxx',
+    'src/rtnl.cxx',
+    'src/qrencode.cxx',
+    'src/ssl.cxx',
+  ],
+  dependencies: [libevent, magic, qrencode, upnp, crypto, ssl, libevent_ssl],
+  install: true)
