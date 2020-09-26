@@ -7,6 +7,8 @@
 #ifndef _PSHS_NETWORK_H
 #define _PSHS_NETWORK_H
 
+#include <iostream>
+
 class ExternalIP
 {
 	int _port;
@@ -19,5 +21,18 @@ public:
 };
 
 const char* get_rtnl_external_ip(void);
+
+struct IPAddrPrinter
+{
+	const char* addr;
+	int port;
+
+	IPAddrPrinter(const char* new_addr, int new_port)
+		: addr(new_addr), port(new_port)
+	{
+	}
+
+	friend std::ostream& operator<<(std::ostream&, const IPAddrPrinter&);
+};
 
 #endif /*_PSHS_NETWORK_H*/

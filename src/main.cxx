@@ -234,14 +234,14 @@ int main(int argc, char* argv[])
 	SSLMod ssl_mod(http.get(), extip.addr, ssl);
 
 	std::cerr << "Ready to share " << argc - optind << " files.\n"
-		"Bound to " << bindip << ':' << port << '.' << std::endl;
+		"Bound to " << IPAddrPrinter(bindip, port) << '.' << std::endl;
 	if (extip.addr)
 	{
 		std::stringstream server_uri;
 		server_uri << "http";
 		if (ssl)
 			server_uri << 's';
-		server_uri << "://" << extip.addr << ':' << port << '/';
+		server_uri << "://" << IPAddrPrinter(extip.addr, port) << '/';
 		if (prefix)
 			server_uri << prefix << '/';
 		if (argc - optind == 1)

@@ -154,3 +154,15 @@ ExternalIP::~ExternalIP()
 	}
 #endif
 }
+
+std::ostream& operator<<(std::ostream& os, const IPAddrPrinter& addr)
+{
+	bool ipv6 = !!strchr(addr.addr, ':');
+	if (ipv6)
+		os << '[';
+	os << addr.addr;
+	if (ipv6)
+		os << ']';
+	os << ':' << addr.port;
+	return os;
+}

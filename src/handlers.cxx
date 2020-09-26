@@ -40,6 +40,7 @@
 #include "handlers.h"
 #include "content-type.h"
 #include "index.h"
+#include "network.h"
 
 char ct_buf[80];
 
@@ -95,7 +96,8 @@ static void print_req(struct evhttp_request* req)
 
 	assert(conn);
 	evhttp_connection_get_peer(conn, &addr, &port);
-	std::cout << '[' << addr << ':' << port << "] " << uri << std::endl;
+	std::cout << '[' << IPAddrPrinter(addr, port) << "] "
+		<< uri << std::endl;
 }
 
 /**
@@ -112,7 +114,8 @@ void handle_close(struct evhttp_connection* conn, void* data)
 
 	assert(conn);
 	evhttp_connection_get_peer(conn, &addr, &port);
-	std::cout << '[' << addr << ':' << port << "] connection closed" << std::endl;
+	std::cout << '[' << IPAddrPrinter(addr, port)
+		<< "] connection closed" << std::endl;
 }
 
 /**
