@@ -22,18 +22,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#ifdef HAVE_STDINT_H
-#	include <stdint.h>
-#endif
-#ifdef HAVE_INTTYPES_H
-#	include <inttypes.h>
-#endif
-#ifndef SCNdMAX
-#	define SCNdMAX "ld"
-#endif
-#ifndef PRIdMAX
-#	define PRIdMAX "ld"
-#endif
+#include <stdint.h>
+#include <inttypes.h>
 
 #include <event2/buffer.h>
 
