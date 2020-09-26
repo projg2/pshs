@@ -10,7 +10,7 @@ AC_LANG([C++])
 AC_PROG_CXX
 AC_USE_SYSTEM_EXTENSIONS
 
-AC_CHECK_FUNCS([nl_langinfo])
+AC_CHECK_FUNCS([nl_langinfo getifaddrs])
 
 PKG_CHECK_MODULES([LIBEVENT], [libevent])
 
@@ -19,15 +19,6 @@ AC_ARG_ENABLE([libmagic],
 		[Disable use of libmagic])])
 AS_IF([test x"$enable_libmagic" != x"no"], [
 	AC_CHECK_LIB([magic], [magic_descriptor])
-])
-
-AC_ARG_ENABLE([netlink],
-	[AS_HELP_STRING([--disable-netlink],
-		[Disable getting IP via netlink])])
-AS_IF([test x"$enable_netlink" != x"no"], [
-	AC_CHECK_LIB([netlink], [rtnl_wilddump_request])
-	# newer versions of libnetlink need linking to libmnl
-	PKG_CHECK_MODULES([LIBMNL], [libmnl], [], [])
 ])
 
 AC_ARG_ENABLE([qrencode],
