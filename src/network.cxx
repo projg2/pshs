@@ -121,7 +121,10 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 #endif
 
 	/* Fallback to bindip or netlink */
-	addr = !strcmp(bindip, "0.0.0.0") ? get_rtnl_external_ip() : bindip;
+	if (!strcmp(bindip, "0.0.0.0") || !strcmp(bindip, "::"))
+		addr = get_rtnl_external_ip();
+	else
+		addr = bindip;
 }
 
 /**
