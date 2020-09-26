@@ -276,7 +276,7 @@ int main(int argc, char* argv[])
 		sigevents[i] = {evsignal_new(evb.get(), sigs[i], term_handler, evb.get()), event_free};
 		if (!sigevents[i])
 			std::cerr << "evsignal_new(" << sigs[i] << ") failed." << std::endl;
-		else;
+		else
 			event_add(sigevents[i].get(), NULL);
 	}
 
