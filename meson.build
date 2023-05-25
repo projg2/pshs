@@ -1,5 +1,5 @@
 project('pshs', 'cpp',
-        version: '0.4.1',
+        version: '0.4.2',
         license: '2-clause BSD')
 
 cxx = meson.get_compiler('cpp')
