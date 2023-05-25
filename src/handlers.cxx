@@ -81,7 +81,7 @@ static void print_req(struct evhttp_request* req)
 	const char* uri = evhttp_request_get_uri(req);
 	struct evhttp_connection* conn = evhttp_request_get_connection(req);
 
-	char* addr;
+	const char* addr;
 	ev_uint16_t port;
 
 	assert(conn);
@@ -99,7 +99,7 @@ static void print_req(struct evhttp_request* req)
  */
 void handle_close(struct evhttp_connection* conn, void* data)
 {
-	char* addr;
+	const char* addr;
 	ev_uint16_t port;
 
 	assert(conn);
