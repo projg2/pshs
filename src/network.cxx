@@ -1,5 +1,5 @@
 /* pshs -- network interfaces support
- * (c) 2011 Michał Górny
+ * (c) 2011-2024 Michał Górny
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -63,13 +63,25 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0);
 #endif
 
+		static char extip[16];
+
+#if MINIUPNPC_API_VERSION >= 18
+		int ret = UPNP_GetValidIGD(devlist, &upnp_urls, &upnp_data,
+				lan_addr, sizeof(lan_addr), extip, sizeof(extip));
+#else
 		int ret = UPNP_GetValidIGD(devlist, &upnp_urls, &upnp_data,
 				lan_addr, sizeof(lan_addr));
+#endif
 		freeUPNPDevlist(devlist);
 
 		/* ret=1 means we've got IGD,
-		 * ret>1 means we've got something else, so we need to clean up */
+		 * since API 18, ret=2 means we've got IGD without external IP,
+		 * higher values mean we've got other UPnP device, so we need
+		 * to clean up */
 		upnp_enabled = (ret == 1);
+#if MINIUPNPC_API_VERSION >= 18
+		upnp_enabled |= (ret == 2);
+#endif
 		if (upnp_enabled)
 		{
 			/* UPnP likes ASCII */
@@ -99,9 +111,10 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 			}
 			else
 			{
-				static char extip[16];
-
 				/* And then get external IP. */
+#if MINIUPNPC_API_VERSION >= 18
+				if (ret == 1)
+#else
 				if (UPNP_GetExternalIPAddress(
 						upnp_urls.controlURL,
 #if MINIUPNPC_API_VERSION >= 5
@@ -110,12 +123,13 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 						upnp_data.servicetype,
 #endif
 						extip) == UPNPCOMMAND_SUCCESS)
+#endif
 				{
 					addr = extip;
 					return;
 				}
 			}
-		} else if (ret)
+		} else if (ret > 0)
 			FreeUPNPUrls(&(upnp_urls));
 	}
 #endif
