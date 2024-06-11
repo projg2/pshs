@@ -1,6 +1,6 @@
 /* pshs -- IP address getting support
  * (c) 2011-2020 Michał Górny
- * 2-clause BSD-licensed
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include "config.h"

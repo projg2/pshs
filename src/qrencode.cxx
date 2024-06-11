@@ -1,6 +1,6 @@
 /* pshs -- QRCode printing support
  * (c) 2011 Michał Górny
- * 2-clause BSD-licensed
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include "config.h"
