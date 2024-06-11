@@ -27,11 +27,16 @@
 #	include <openssl/rsa.h>
 #	include <openssl/ssl.h>
 #	include <openssl/x509.h>
+
+#	if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#		define HAVE_OPENSSL3
+#	endif
 #endif
 
 #ifdef HAVE_LIBSSL
 static std::unique_ptr<SSL_CTX, std::function<void(SSL_CTX*)>> ssl;
 
+#ifndef HAVE_OPENSSL3
 static int key_progress_cb(int p, int n, BN_GENCB* cb)
 {
 	int rc = 1;
@@ -52,6 +57,7 @@ static int key_progress_cb(int p, int n, BN_GENCB* cb)
 
 	return rc;
 }
+#endif
 
 static struct bufferevent* https_bev_callback(struct event_base* evb, void* data)
 {
@@ -74,12 +80,21 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	unsigned char sha256_buf[32];
 	unsigned int i;
 
-	std::unique_ptr<EVP_PKEY, std::function<void(EVP_PKEY*)>>
-		pkey{EVP_PKEY_new(), EVP_PKEY_free};
 	std::unique_ptr<X509, std::function<void(X509*)>>
 		x509{X509_new(), X509_free};
-	/* XXX: settable params */
 
+	if (!x509)
+		throw std::bad_alloc();
+
+#ifdef HAVE_OPENSSL3
+	std::unique_ptr<EVP_PKEY, std::function<void(EVP_PKEY*)>>
+		pkey{EVP_RSA_gen(2048), EVP_PKEY_free};
+
+	if (!pkey)
+		throw std::bad_alloc();
+#else
+	std::unique_ptr<EVP_PKEY, std::function<void(EVP_PKEY*)>>
+		pkey{EVP_PKEY_new(), EVP_PKEY_free};
 	std::unique_ptr<RSA, std::function<void(RSA*)>>
 		rsa{RSA_new(), RSA_free};
 	std::unique_ptr<BIGNUM, std::function<void(BIGNUM*)>>
@@ -87,7 +102,7 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	std::unique_ptr<BN_GENCB, std::function<void(BN_GENCB*)>>
 		cb{BN_GENCB_new(), BN_GENCB_free};
 
-	if (!pkey || !x509 || !rsa || !e || !cb)
+	if (!pkey || !rsa || !e || !cb)
 		throw std::bad_alloc();
 
 	if (!BN_set_word(e.get(), RSA_F4))
@@ -100,6 +115,7 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 
 	if (!EVP_PKEY_set1_RSA(pkey.get(), rsa.get()))
 		throw std::runtime_error("EVP_PKEY_set1_RSA() failed");
+#endif
 
 	if (!X509_set_pubkey(x509.get(), pkey.get()))
 		throw std::runtime_error("X509_set_pubkey() failed");
