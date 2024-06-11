@@ -1,5 +1,5 @@
 /* pshs -- request handlers
- * (c) 2011 Michał Górny
+ * (c) 2011-2024 Michał Górny
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -26,6 +26,7 @@
 #include <inttypes.h>
 
 #include <event2/buffer.h>
+#include <event2/event.h>
 
 #include "handlers.h"
 #include "content-type.h"
@@ -81,7 +82,11 @@ static void print_req(struct evhttp_request* req)
 	const char* uri = evhttp_request_get_uri(req);
 	struct evhttp_connection* conn = evhttp_request_get_connection(req);
 
+#if LIBEVENT_VERSION_NUMBER >= 0x02020000
 	const char* addr;
+#else
+	char* addr;
+#endif
 	ev_uint16_t port;
 
 	assert(conn);
@@ -99,7 +104,11 @@ static void print_req(struct evhttp_request* req)
  */
 void handle_close(struct evhttp_connection* conn, void* data)
 {
+#if LIBEVENT_VERSION_NUMBER >= 0x02020000
 	const char* addr;
+#else
+	char* addr;
+#endif
 	ev_uint16_t port;
 
 	assert(conn);
