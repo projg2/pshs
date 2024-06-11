@@ -1,0 +1,33 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build:
+    strategy:
+      matrix:
+        libmagic: [disabled, enabled]
+        qrencode: [disabled, enabled]
+        ssl: [disabled, enabled]
+        upnp: [disabled, enabled]
+      #fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install common dependencies
+        run: sudo apt-get install -y meson libevent-dev
+      - name: Install libminiupnpc
+        run: sudo apt-get install -y libminiupnpc-dev
+        if: ${{ matrix.upnp == 'enabled' }}
+      - name: Install libqrencode
+        run: sudo apt-get install -y libqrencode-dev
+        if: ${{ matrix.qrencode == 'enabled' }}
+      - name: Configure
+        run: meson setup . build
+             -Dlibmagic=${{ matrix.libmagic }}
+             -Dqrencode=${{ matrix.qrencode }}
+             -Dssl=${{ matrix.ssl }}
+             -Dupnp=${{ matrix.upnp }}
+      - name: Build
+        run: meson compile -C build
+      - name: Install
+        run: sudo meson install -C build
