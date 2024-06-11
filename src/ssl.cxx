@@ -32,20 +32,9 @@
 #ifdef HAVE_LIBSSL
 static std::unique_ptr<SSL_CTX, std::function<void(SSL_CTX*)>> ssl;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L && \
-		(!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER >= 0x2070000fL)
-#	define HAVE_OPENSSL11_API
-#endif
-
-#ifndef HAVE_OPENSSL11_API
-static void key_progress_cb(int p, int n, void* arg)
-#else
 static int key_progress_cb(int p, int n, BN_GENCB* cb)
-#endif
 {
-#ifdef HAVE_OPENSSL11_API
 	int rc = 1;
-#endif
 	char c;
 
 	switch (p)
@@ -54,17 +43,14 @@ static int key_progress_cb(int p, int n, BN_GENCB* cb)
 		case 1: c = '+'; break;
 		case 2: c = '*'; break;
 		case 3: c = '\n'; break;
-		default: c = '?';
-#ifdef HAVE_OPENSSL11_API
+		default:
+			c = '?';
 			rc = 0;
-#endif
 	}
 
 	fputc(c, stderr);
 
-#ifdef HAVE_OPENSSL11_API
 	return rc;
-#endif
 }
 
 static struct bufferevent* https_bev_callback(struct event_base* evb, void* data)
@@ -88,24 +74,12 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	unsigned char sha256_buf[32];
 	unsigned int i;
 
-#ifndef HAVE_OPENSSL11_API
-	SSL_load_error_strings();
-	SSL_library_init();
-#endif
-
 	std::unique_ptr<EVP_PKEY, std::function<void(EVP_PKEY*)>>
 		pkey{EVP_PKEY_new(), EVP_PKEY_free};
 	std::unique_ptr<X509, std::function<void(X509*)>>
 		x509{X509_new(), X509_free};
 	/* XXX: settable params */
 
-#ifndef HAVE_OPENSSL11_API
-	std::unique_ptr<RSA, std::function<void(RSA*)>>
-		rsa{RSA_generate_key(2048, RSA_F4, key_progress_cb, 0), RSA_free};
-
-	if (!pkey || !x509 || !rsa)
-		throw std::bad_alloc();
-#else
 	std::unique_ptr<RSA, std::function<void(RSA*)>>
 		rsa{RSA_new(), RSA_free};
 	std::unique_ptr<BIGNUM, std::function<void(BIGNUM*)>>
@@ -123,7 +97,6 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 
 	if (!RSA_generate_key_ex(rsa.get(), 2048, e.get(), cb.get()))
 		throw std::runtime_error("RSA_generate_key_ex() failed");
-#endif
 
 	if (!EVP_PKEY_set1_RSA(pkey.get(), rsa.get()))
 		throw std::runtime_error("EVP_PKEY_set1_RSA() failed");
@@ -136,13 +109,8 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	/* Semi-random serial number to avoid repetitions */
 	ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), time(NULL));
 	/* Valid for 24 hours */
-#ifndef HAVE_OPENSSL11_API
-	X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
-	X509_gmtime_adj(X509_get_notAfter(x509.get()), 60*60*24);
-#else
 	X509_gmtime_adj(X509_getm_notBefore(x509.get()), 0);
 	X509_gmtime_adj(X509_getm_notAfter(x509.get()), 60*60*24);
-#endif
 
 	/* Set subject & issuer */
 	name = X509_get_subject_name(x509.get());
@@ -160,11 +128,7 @@ SSLMod::SSLMod(evhttp* http, const char* extip, bool enable)
 	if (!X509_sign(x509.get(), pkey.get(), EVP_sha512()))
 		throw std::runtime_error("X509_sign() failed");
 
-#ifndef HAVE_OPENSSL11_API
-	ssl = {SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free};
-#else
 	ssl = {SSL_CTX_new(TLS_server_method()), SSL_CTX_free};
-#endif
 	if (!ssl)
 		throw std::bad_alloc();
 
@@ -204,7 +168,5 @@ SSLMod::~SSLMod()
 	if (!enabled)
 		return;
 
-#ifdef HAVE_LIBSSL
 	ssl.reset(nullptr);
-#endif
 }

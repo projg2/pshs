@@ -10,7 +10,9 @@ qrencode = dependency('libqrencode', required: get_option('qrencode'))
 upnp = dependency('miniupnpc', required: get_option('upnp'))
 
 crypto = dependency('libcrypto', required: get_option('ssl'))
-ssl = dependency('libssl', required: get_option('ssl'))
+ssl = dependency('libssl',
+                 version: '>=1.1',
+                 required: get_option('ssl'))
 libevent_ssl = dependency('libevent_openssl',
                           version: '>=2.1',
                           required: get_option('ssl'))
