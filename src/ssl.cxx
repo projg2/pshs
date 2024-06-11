@@ -184,5 +184,7 @@ SSLMod::~SSLMod()
 	if (!enabled)
 		return;
 
+#ifdef HAVE_LIBSSL
 	ssl.reset(nullptr);
+#endif
 }
