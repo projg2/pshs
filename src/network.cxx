@@ -16,14 +16,6 @@
 #	include <miniupnpc/miniupnpc.h>
 #	include <miniupnpc/upnpcommands.h>
 #	include <miniupnpc/upnperrors.h>
-
-#	ifndef MINIUPNPC_API_VERSION
-#		ifdef UPNPCOMMAND_HTTP_ERROR
-#			define MINIUPNPC_API_VERSION 5
-#		else
-#			define MINIUPNPC_API_VERSION 0
-#		endif
-#	endif
 #endif
 
 #include "network.h"
@@ -55,14 +47,7 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 	/* use UPnP only if user wants to */
 	if (use_upnp)
 	{
-#if MINIUPNPC_API_VERSION >= 14
 		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0, 0, 2, NULL);
-#elif MINIUPNPC_API_VERSION >= 8
-		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0, 0, NULL);
-#else
-		struct UPNPDev* devlist = upnpDiscover(discovery_delay, bindip, NULL, 0);
-#endif
-
 		static char extip[16];
 
 #if MINIUPNPC_API_VERSION >= 18
@@ -90,17 +75,11 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 			/* Set the port forwarding. */
 			ret = UPNP_AddPortMapping(
 					upnp_urls.controlURL,
-#if MINIUPNPC_API_VERSION >= 5
 					upnp_data.first.servicetype,
-#else
-					upnp_data.servicetype,
-#endif
 					strport.c_str(), strport.c_str(), lan_addr,
 					"Pretty small HTTP server",
 					"TCP",
-#if MINIUPNPC_API_VERSION >= 8
 					NULL,
-#endif
 					NULL);
 			if (ret != UPNPCOMMAND_SUCCESS)
 			{
@@ -117,11 +96,7 @@ ExternalIP::ExternalIP(unsigned int port, const char* bindip, bool use_upnp)
 #else
 				if (UPNP_GetExternalIPAddress(
 						upnp_urls.controlURL,
-#if MINIUPNPC_API_VERSION >= 5
 						upnp_data.first.servicetype,
-#else
-						upnp_data.servicetype,
-#endif
 						extip) == UPNPCOMMAND_SUCCESS)
 #endif
 				{
@@ -158,11 +133,7 @@ ExternalIP::~ExternalIP()
 		/* Remove the port forwarding when done. */
 		ret = UPNP_DeletePortMapping(
 				upnp_urls.controlURL,
-#if MINIUPNPC_API_VERSION >= 5
 				upnp_data.first.servicetype,
-#else
-				upnp_data.servicetype,
-#endif
 				strport.c_str(), "TCP", NULL);
 		if (ret != UPNPCOMMAND_SUCCESS)
 			std::cerr << "UPNP_DeletePortMapping() failed: " << strupnperror(ret)
